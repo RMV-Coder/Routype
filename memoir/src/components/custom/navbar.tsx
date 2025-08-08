@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { Button } from "@/components/ui/button";
-import { AspectRatio } from './aspect-ratio';
+import { AspectRatio } from '../ui/aspect-ratio';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 
 export default function Navbar() {
   return (
-    <header className="bg-slate-200 border-b border-slate-300 text-slate-900 sticky top-0 z-50">
+    <div className="bg-slate-200 border-b border-slate-300 text-slate-900 sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between">
         {/* Logo */}
         {/* <Link href="/" className="text-xl font-semibold hover:text-slate-300 transition"> */}
@@ -45,6 +45,6 @@ export default function Navbar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </header>
+    </div>
   )
 }
