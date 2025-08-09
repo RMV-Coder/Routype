@@ -1,7 +1,7 @@
 // import { auth } from "next-auth"
 "use client";
-import { useSession, signOut } from "next-auth/react";
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { AppSidebar } from "@/components/custom/app-sidebar";
 import {
   Breadcrumb,
@@ -20,6 +20,11 @@ import {
 
 export default function Home() {
   const { data: session } = useSession();
+  useEffect(()=>{
+    if(session){
+      console.log(session);
+    }
+  },[session]);
   return (
       <>
       
@@ -53,8 +58,6 @@ export default function Home() {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            Signed in as {session?.user?.email} <br/>
-          <Button onClick={()=>{signOut()}}>Sign out</Button> 
             <div className="bg-muted/50 aspect-video rounded-xl" />
             <div className="bg-muted/50 aspect-video rounded-xl" />
             <div className="bg-muted/50 aspect-video rounded-xl" />

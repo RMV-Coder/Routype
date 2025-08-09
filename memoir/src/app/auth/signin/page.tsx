@@ -83,7 +83,7 @@ export default function SignIn(){
         if(['github', 'google'].includes(providerId)){
             try{
                 const res = await nextAuthSignIn(providerId, {
-                    callbackUrl: callbackUrl || '/feed', // Redirect after login
+                    callbackUrl: callbackUrl || '/', // Redirect after login
                 });
                 // If `redirect: false` were used, you could just inspect `res.error`
                 // But by default, it redirects, so we just return success unless error
@@ -112,12 +112,12 @@ export default function SignIn(){
                     email,
                     password,
                     redirect: false,
-                    callbackUrl: callbackUrl || '/feed',
+                    callbackUrl: callbackUrl || '/',
                 });
                 if(res?.error){
                     return { error: res.error};
                 }
-                router.push(res?.url || '/feed');
+                router.push(res?.url || '/');
                 router.refresh();
 
                 return {};

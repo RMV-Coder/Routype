@@ -3,28 +3,27 @@ CREATE SCHEMA IF NOT EXISTS `routype_db`;
 USE `routype_db`;
 
 CREATE TABLE IF NOT EXISTS `user` (
-	id INT PRIMARY KEY AUTO_INCREMENT,
-    first_name VARCHAR(255),
-    middle_name VARCHAR(255),
-    last_name VARCHAR(255),
+	id INT PRIMARY KEY UNIQUE,
+    name VARCHAR(255),
     age INT,
     email VARCHAR(255) UNIQUE,
     email_verified DATETIME,
     password VARCHAR(255),
-    profile LONGTEXT DEFAULT NULL,
+    image LONGTEXT DEFAULT NULL,
     creation_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active TINYINT,
     last_login DATETIME,
-    role ENUM('business', 'page', 'admin', 'default') DEFAULT 'default', -- Add 'admin'
+    type ENUM('business', 'page', 'admin', 'default') DEFAULT 'default', -- Add 'admin'
     fcm_token VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS `account`(
-	account_id VARCHAR(255) UNIQUE,
-    user_id INT NOT NULL,
+	provider_account_id VARCHAR(255) UNIQUE,
+    user_id INT UNIQUE,
     account_type VARCHAR(255),
     provider VARCHAR(255),
+    provider_type VARCHAR(255),
     refresh_token VARCHAR(255),
     access_token VARCHAR(255),
     expires_at INT,
@@ -39,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `session`(
 	session_id VARCHAR(255),
     expires DATETIME,
     session_token VARCHAR(255) UNIQUE,
-    user_id INT,
+    user_id INT UNIQUE,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 

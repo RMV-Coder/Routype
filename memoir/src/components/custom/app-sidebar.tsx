@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useSession } from "next-auth/react";
 import {
   BookOpen,
   Bot,
@@ -17,6 +18,7 @@ import {
   Settings,
   SquarePlus,
   SquareUser,
+  Trophy,
   Zap 
 } from "lucide-react"
 import Image from "next/image";
@@ -205,12 +207,18 @@ const data = {
     {
       name: "Achievements",
       url: "#",
-      icon: Map,
+      icon: Trophy,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = useSession();
+    React.useEffect(()=>{
+      if(session){
+        console.log(session);
+      }
+    },[session]);
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -225,7 +233,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="truncate font-medium">Acme Inc</span>
                   <span className="truncate text-xs">Enterprise</span>
                 </div> */}
-                <Image src="/logo_routype.svg" alt="Image" width={218} height={66} className="rounded-md object-cover py-3" />
+                <Image src="/logo_routype.svg" alt="Image" width={218} height={66} className="rounded-md object-cover py-3" priority />
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -237,7 +245,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        {session&&<NavUser user={session.user} />}
       </SidebarFooter>
     </Sidebar>
   )
