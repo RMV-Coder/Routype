@@ -2,7 +2,6 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -14,9 +13,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "../ui/button";
-import { Toggle } from "../ui/toggle";
+import { ButtonGroup } from "./button-group";
 import { useRef, useState } from "react";
-import { Bold, Italic, Heading, Code, Heading1, Strikethrough, Braces, Quote, Superscript, Subscript, SquareCheck, Square, Image, Link, ListOrdered, List , FileSymlink  } from "lucide-react";
+import { Bold, Italic, Code, Heading1, Strikethrough, Braces, Quote, Superscript, Subscript, SquareCheck, Square, Image, Link, ListOrdered, List , FileSymlink  } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -24,7 +23,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
-import { html } from '@codemirror/lang-html'
+import { MathJaxContext, MathJax } from "better-react-mathjax";
 import { githubLight, githubDark } from '@uiw/codemirror-theme-github';
 import 'github-markdown-css/github-markdown-light.css';
 const schema = {
@@ -35,6 +34,10 @@ const schema = {
     img: ['src', 'alt', 'title', 'width', 'height'],
     a: ['href', 'title', 'target', 'rel']
   }
+};
+const mathJaxConfig = {
+  loader: { load: ["input/tex", "output/chtml"] },
+  tex: { inlineMath: [["$", "$"], ["\\(", "\\)"]] }
 };
 export function MarkdownEditor () {
     const [content, setContent] = useState<string>("");
@@ -76,6 +79,7 @@ export function MarkdownEditor () {
                 </CardTitle>
                 {/* <CardDescription>Card Description</CardDescription> */}
                 <CardAction>
+                    <ButtonGroup>
                     <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("**")}><Bold/></Button>
                     <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("*")}><Italic/></Button>
                     <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("~~")}><Strikethrough/></Button>
@@ -83,7 +87,9 @@ export function MarkdownEditor () {
                     <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("```\n", "\n```")}><Braces/></Button>
                     <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("~")}><Subscript/></Button>
                     <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("^")}><Superscript/></Button>
-                    
+                    </ButtonGroup>
+
+                    <ButtonGroup>
                     <Button size={'icon'} variant={'outline'} onClick={()=>insertLineStart("> ")}><Quote/></Button>
                     <Button size={'icon'} variant={'outline'} onClick={()=>insertLineStart("# ")}><Heading1/></Button>
                     <Button size={'icon'} variant={'outline'} onClick={()=>insertLineStart("- [ ] ")}><Square/></Button>
@@ -91,7 +97,7 @@ export function MarkdownEditor () {
                     <Button size={'icon'} variant={'outline'} onClick={()=>insertLineStart("[title](https://www.example.com)")}><Image/></Button>
                     <Button size={'icon'} variant={'outline'} onClick={()=>insertLineStart("![alt text](image.jpg)")}><Link/></Button>
                     <Button size={'icon'} variant={'outline'} onClick={()=>insertLineStart("[![alt text](image.jpg)](https://www.example.com)")}><FileSymlink/></Button>
-                
+                    </ButtonGroup>
                 </CardAction>
             </CardHeader>
             <CardContent>
@@ -100,7 +106,7 @@ export function MarkdownEditor () {
                     <CodeMirror 
                         value={content}
                         height="500px"
-                        extensions={[html()]}
+                        extensions={[markdown()]}
                         theme={githubLight}
                         onChange={(value)=>{setContent(value)}}
                         basicSetup={{
@@ -137,15 +143,19 @@ export function MarkdownEditor () {
                 </TabsContent>
                 <TabsContent value="Preview" className="prose dark:prose-invert max-w-none">{
                     <div className="markdown-body p-4">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, schema], rehypeHighlight]}>
-                            {content || "*Nothing to preview yet...*"}
-                        </ReactMarkdown>
+                        <MathJaxContext version={3} config={mathJaxConfig}>
+                            <MathJax dynamic>
+                                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, schema], rehypeHighlight]}>
+                                    {content || "*Nothing to preview yet...*"}
+                                </ReactMarkdown>
+                            </MathJax>
+                        </MathJaxContext>
                     </div>
             }</TabsContent>
             </CardContent>
-            <CardFooter>
+            {/* <CardFooter>
                 <p>Card Footer</p>
-            </CardFooter>
+            </CardFooter> */}
         </Card>
         </Tabs>
     );
