@@ -3,7 +3,7 @@ export type User = {
     email?: string | null;
     name?: string | null;
     password?: string;
-    role?: string;
+    type?: string;
     image?: string | null;
 }
 export interface Profile {

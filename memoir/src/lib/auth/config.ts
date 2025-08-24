@@ -57,7 +57,7 @@ export const authOptions: NextAuthOptions = {
                     id: user.id,
                     email: user.email,
                     name: user.name,
-                    role: user.role || "user", 
+                    role: user.type || "user", 
                 };
             },
         }),
@@ -74,6 +74,19 @@ export const authOptions: NextAuthOptions = {
     },
 
     callbacks: {
+         async signIn({ account }) {
+            // Allow credentials login
+            if (account?.provider === 'credentials') {
+                return true;
+            }
+
+            // For OAuth providers, allow automatic linking if emails match
+            if (account?.provider === 'github' || account?.provider === 'google') {
+                return true; // Let the adapter handle the linking
+            }
+
+            return true;
+        },
         // async signIn({ user, account}: {user: NextAuthUser & Partial<User>, account: (NextAuthAccount & Partial<Account>) | null, profile?: Profile}){
         //     let connection = null;
         //     try{
@@ -123,15 +136,15 @@ export const authOptions: NextAuthOptions = {
             if(user) {
                 token.id = user.id;
                 token.email = user.email;
-                token.role = user.role;
+                token.type = user.type;
             }
             return token;
         },
-        async session({ session, token }: { session: Session; token: JWT}){
+        async session({ session, user }: { session: Session; user: User}){
+            console.log("session.user: ", JSON.stringify(session.user));
+            console.log("user: ", JSON.stringify(user));//undefined
             if(session.user){
-                session.user.id = token.id;
-                session.user.email = token.email;
-                session.user.role = token.role;
+                session.user.type = user.type;
             }
             return session;
         },
