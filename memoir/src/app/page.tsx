@@ -2,21 +2,21 @@
 "use client";
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { AppSidebar } from "@/components/custom/app-sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+// import { AppSidebar } from "@/components/custom/app-sidebar";
+// import {
+//   Breadcrumb,
+//   BreadcrumbItem,
+//   BreadcrumbLink,
+//   BreadcrumbList,
+//   BreadcrumbPage,
+//   BreadcrumbSeparator,
+// } from "@/components/ui/breadcrumb";
+// import { Separator } from "@/components/ui/separator";
+// import {
+//   SidebarInset,
+//   SidebarProvider,
+//   SidebarTrigger,
+// } from "@/components/ui/sidebar";
 import { MarkdownEditor } from "@/components/custom/markdown-editor";
 
 export default function Home() {
@@ -28,7 +28,7 @@ export default function Home() {
   },[session]);
   return (
       <>
-      <SidebarProvider>
+      {/* <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2">
@@ -37,8 +37,8 @@ export default function Home() {
             <Separator
               orientation="vertical"
               className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            <Breadcrumb>
+            /> */}
+            {/* <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="#">
@@ -50,10 +50,10 @@ export default function Home() {
                   <BreadcrumbPage>Data Fetching</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
-            </Breadcrumb>
-          </div>
+            </Breadcrumb> */}
+          {/* </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0"> */}
           {/* <div className="grid auto-rows-min gap-4 md:grid-cols-3">
             
             <div className="bg-muted/50 aspect-video rounded-xl" />
@@ -62,9 +62,9 @@ export default function Home() {
           </div> */}
           <MarkdownEditor/>
           {/* <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" /> */}
-        </div>
+        {/* </div>
       </SidebarInset>
-    </SidebarProvider>
+    </SidebarProvider> */}
       </>
   )
 }

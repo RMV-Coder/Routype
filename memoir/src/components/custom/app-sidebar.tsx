@@ -45,7 +45,7 @@ const data = {
   navMain: [
     {
       title: "Profile",
-      url: "#",
+      url: "/profile",
       icon: SquareUser ,
       // isActive: true,
       // items: [
@@ -65,7 +65,7 @@ const data = {
     },
     {
       title: "Messages",
-      url: "#",
+      url: "/messages",
       icon: MessageSquare ,
       items: [
         {
@@ -82,55 +82,56 @@ const data = {
         },
       ],
     },
-    {
-      title: "Create Post",
-      url: "#",
-      icon: SquarePlus,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
+    // {
+    //   title: "Add Entry",
+    //   url: "#",
+    //   icon: SquarePlus,
+    //   items: [
+    //     {
+    //       title: "Introduction",
+    //       url: "#",
+    //     },
+    //     {
+    //       title: "Get Started",
+    //       url: "#",
+    //     },
+    //     {
+    //       title: "Tutorials",
+    //       url: "#",
+    //     },
+    //     {
+    //       title: "Changelog",
+    //       url: "#",
+    //     },
+    //   ],
+    // },
     {
       title: "My Journal",
-      url: "#",
+      url: "#/myjournal",
       icon: BookOpen,
       items: [
         {
-          title: "General",
+          title: "Add Entry",
           url: "#",
+          // icon: SquarePlus,
         },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
+        // {
+        //   title: "Team",
+        //   url: "#",
+        // },
+        // {
+        //   title: "Billing",
+        //   url: "#",
+        // },
+        // {
+        //   title: "Limits",
+        //   url: "#",
+        // },
       ],
     },
     {
       title: "Streaks",
-      url: "#",
+      url: "/streaks",
       icon: Zap,
       items: [
         {
@@ -153,7 +154,7 @@ const data = {
     },
     {
       title: "TypeArena",
-      url: "#",
+      url: "/typearena",
       icon: Keyboard,
       items: [
         {
@@ -174,39 +175,39 @@ const data = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/settings",
       icon: Settings,
     },
     {
       title: "Support",
-      url: "#",
+      url: "/support",
       icon: LifeBuoy,
     },
     {
       title: "Feedback",
-      url: "#",
+      url: "/feedback",
       icon: Send,
     },
   ],
   community: [
     {
       name: "Echoes",
-      url: "#",
+      url: "/echoes",
       icon: Frame,
     },
     {
       name: "Friends",
-      url: "#",
+      url: "/friends",
       icon: PieChart,
     },
     {
       name: "My Communities",
-      url: "#",
+      url: "/mycommunities",
       icon: Map,
     },
     {
       name: "Achievements",
-      url: "#",
+      url: "/achievements",
       icon: Trophy,
     },
   ],

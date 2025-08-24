@@ -7,6 +7,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   Tabs,
   TabsContent,
   TabsList,
@@ -26,6 +31,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { MathJaxContext, MathJax } from "better-react-mathjax";
 import { githubLight, githubDark } from '@uiw/codemirror-theme-github';
 import 'github-markdown-css/github-markdown-light.css';
+import { PostActions } from "./post-actions";
 const schema = {
   ...defaultSchema,
   tagNames: [...(defaultSchema.tagNames || []), 'img', 'a'],
@@ -69,7 +75,7 @@ export function MarkdownEditor () {
     
     return (
         <Tabs defaultValue="Write">
-        <Card>
+        <Card className="m-4">
             <CardHeader>
                 <CardTitle>
                     <TabsList>
@@ -79,14 +85,65 @@ export function MarkdownEditor () {
                 </CardTitle>
                 {/* <CardDescription>Card Description</CardDescription> */}
                 <CardAction>
+                    
+
                     <ButtonGroup>
-                    <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("**")}><Bold/></Button>
-                    <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("*")}><Italic/></Button>
-                    <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("~~")}><Strikethrough/></Button>
-                    <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("`")}><Code/></Button>
-                    <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("```\n", "\n```")}><Braces/></Button>
-                    <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("~")}><Subscript/></Button>
-                    <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("^")}><Superscript/></Button>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("**")}><Bold/></Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Bold</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("*")}><Italic/></Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Italic</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("~~")}><Strikethrough/></Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Strikethrough</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("`")}><Code/></Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Inline Code</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("```\n", "\n```")}><Braces/></Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Block Code</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("~")}><Subscript/></Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Subscript</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Button size={'icon'} variant={'outline'} onClick={()=>wrapSelection("^")}><Superscript/></Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Superscript</p>
+                            </TooltipContent>
+                        </Tooltip>
                     </ButtonGroup>
 
                     <ButtonGroup>
@@ -105,7 +162,7 @@ export function MarkdownEditor () {
                     {/* <Textarea value={content} onChange={(e)=>setContent(e.target.value)} placeholder="Write in markdown..."/> */}
                     <CodeMirror 
                         value={content}
-                        height="500px"
+                        height="360px"
                         extensions={[markdown()]}
                         theme={githubLight}
                         onChange={(value)=>{setContent(value)}}
@@ -153,10 +210,15 @@ export function MarkdownEditor () {
                     </div>
             }</TabsContent>
             </CardContent>
-            {/* <CardFooter>
-                <p>Card Footer</p>
-            </CardFooter> */}
+            <CardFooter>
+                <PostActions/>
+            </CardFooter>
         </Card>
         </Tabs>
     );
 }
+// # Whispers of the Soul
+
+// > *"Some things are meant to be, hence some other things aren't..."*
+// >
+// > *"Being hopeful while losing hope is painful, acceptance soothes the heart"*

@@ -3,7 +3,7 @@ CREATE SCHEMA IF NOT EXISTS `routype_db`;
 USE `routype_db`;
 
 CREATE TABLE IF NOT EXISTS `user` (
-	id INT PRIMARY KEY UNIQUE,
+	id INT PRIMARY KEY AUTO_INCREMENT UNIQUE,
     name VARCHAR(255),
     age INT,
     email VARCHAR(255) UNIQUE,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 
 CREATE TABLE IF NOT EXISTS `account`(
 	provider_account_id VARCHAR(255) UNIQUE,
-    user_id INT UNIQUE,
+    user_id INT,
     account_type VARCHAR(255),
     provider VARCHAR(255),
     provider_type VARCHAR(255),
@@ -48,15 +48,52 @@ CREATE TABLE IF NOT EXISTS `verification_token`(
     expires DATETIME
 );
 
-CREATE TABLE IF NOT EXISTS `post` (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+-- CREATE TABLE IF NOT EXISTS `post` (
+--     id INT PRIMARY KEY AUTO_INCREMENT,
+--     user_id INT NOT NULL,
+--     title VARCHAR(255),
+--     content LONGTEXT,  -- Markdown supported
+--     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     is_private TINYINT DEFAULT 0,
+--     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+-- );
+
+-- Journals (Books)
+CREATE TABLE IF NOT EXISTS journal (
+    id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    title VARCHAR(255),
-    content LONGTEXT,  -- Markdown supported
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_private TINYINT DEFAULT 0,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    visibility ENUM('public', 'private', 'friends') DEFAULT 'public',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+);
+
+-- Journal Entries (Markdown posts)
+CREATE TABLE IF NOT EXISTS entry (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    journal_id INT NOT NULL,
+    title VARCHAR(255),
+    content MEDIUMTEXT NOT NULL,
+    status ENUM('draft', 'published', 'scheduled') DEFAULT 'draft',
+    scheduled_at DATETIME NULL,
+    published_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (journal_id) REFERENCES journal(id) ON DELETE CASCADE
+);
+
+-- Track what a user has read in a specific journal
+CREATE TABLE IF NOT EXISTS journal_read_state (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    journal_id INT NOT NULL,
+    last_seen_entry_id INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY (user_id, journal_id),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (journal_id) REFERENCES journal(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS `friendship` (

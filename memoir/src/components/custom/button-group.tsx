@@ -1,6 +1,7 @@
 // src/components/ui/button-group.tsx
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ButtonGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -15,43 +16,79 @@ export function ButtonGroup({
 }: ButtonGroupProps) {
   const count = React.Children.count(children);
 
+  const applyRounding = (
+    element: React.ReactElement<{ className?: string }>,
+    index: number
+  ) => {
+    const newClassName = cn(
+      "rounded-none",
+      direction === "horizontal" && index === 0 && "rounded-l-md",
+      direction === "horizontal" && index === count - 1 && "rounded-r-md",
+      direction === "vertical" && index === 0 && "rounded-t-md",
+      direction === "vertical" && index === count - 1 && "rounded-b-md",
+      direction === "horizontal" && index !== 0 && "-ml-px",
+      direction === "vertical" && index !== 0 && "-mt-px",
+      element.props.className
+    );
+    return React.cloneElement(element, { className: newClassName });
+  };
+
+  const isTooltipElement = (
+    element: React.ReactElement
+  ): element is React.ReactElement<React.ComponentProps<typeof Tooltip>> => {
+    return element.type === Tooltip;
+  };
+
+  const isTooltipTriggerElement = (
+    element: React.ReactElement
+  ): element is React.ReactElement<React.ComponentProps<typeof TooltipTrigger>> => {
+    return element.type === TooltipTrigger;
+  };
+
   return (
     <div
       className={cn(
         "inline-flex",
         direction === "vertical" ? "flex-col" : "flex-row",
         "rounded-md overflow-hidden",
+        "px-2",
         className
       )}
       {...props}
     >
       {React.Children.map(children, (child, index) => {
-        // keep non-elements as is (strings, null, etc.)
         if (!React.isValidElement(child)) return child;
 
-        // Tell TS this element's props include className (optional)
-        const el = child as React.ReactElement<{ className?: string }>;
+        // Case 1: Direct Button
+        if (!isTooltipElement(child)) {
+          return applyRounding(
+            child as React.ReactElement<{ className?: string }>,
+            index
+          );
+        }
 
-        const existingClassName = el.props?.className;
-
-        const newClassName = cn(
-          "rounded-none",
-          // horizontal corners
-          direction === "horizontal" && index === 0 && "rounded-l-md",
-          direction === "horizontal" && index === count - 1 && "rounded-r-md",
-          // vertical corners
-          direction === "vertical" && index === 0 && "rounded-t-md",
-          direction === "vertical" && index === count - 1 && "rounded-b-md",
-          // avoid double borders between outlined buttons
-          direction === "horizontal" && index !== 0 && "-ml-px",
-          direction === "vertical" && index !== 0 && "-mt-px",
-          existingClassName
+        // Case 2: Tooltip containing a TooltipTrigger with a Button inside
+        const updatedTooltipChildren = React.Children.map(
+          child.props.children,
+          (grandchild) => {
+            if (React.isValidElement(grandchild) && isTooltipTriggerElement(grandchild)) {
+              const updatedTriggerChildren = React.Children.map(
+                grandchild.props.children,
+                (btn) =>
+                  React.isValidElement(btn)
+                    ? applyRounding(
+                        btn as React.ReactElement<{ className?: string }>,
+                        index
+                      )
+                    : btn
+              );
+              return React.cloneElement(grandchild, {}, updatedTriggerChildren);
+            }
+            return grandchild;
+          }
         );
 
-        // clone with the narrowed prop type so TS is happy
-        return React.cloneElement<{ className?: string }>(el, {
-          className: newClassName,
-        });
+        return React.cloneElement(child, {}, updatedTooltipChildren);
       })}
     </div>
   );

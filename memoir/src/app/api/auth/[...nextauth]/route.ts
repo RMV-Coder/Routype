@@ -9,7 +9,7 @@ import { User, Account } from "@/lib/definitions";
 import bcrypt from "bcryptjs";
 import { JWT } from "next-auth/jwt";
 // import { JWT } from "next-auth/jwt";
-const authOptions = {
+export const authOptions = {
     providers: [
         // GoogleProvider({
         //     clientId: process.env.GOOGLE_CLIENT_ID!,
