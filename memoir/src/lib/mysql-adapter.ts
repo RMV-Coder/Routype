@@ -186,6 +186,8 @@ export default function MySQLAdapter(): Adapter {
                     throw new Error('providerAccountId cannot be null or undefined');
                 }
 
+                const toNullIfEmpty = (value: number|string|undefined) => (value === undefined || value === '') ? null : value;
+
                 await pool.execute(
                     `INSERT INTO account 
                      (user_id, provider, provider_account_id, account_type, provider_type,
@@ -197,13 +199,13 @@ export default function MySQLAdapter(): Adapter {
                         providerAccountId,
                         type,
                         provider, // provider_type = provider for most cases
-                        refresh_token,
-                        access_token,
-                        expires_at,
-                        token_type,
-                        scope,
-                        id_token,
-                        session_state
+                        toNullIfEmpty(refresh_token),
+                        toNullIfEmpty(access_token),
+                        toNullIfEmpty(expires_at),
+                        toNullIfEmpty(token_type),
+                        toNullIfEmpty(scope),
+                        toNullIfEmpty(id_token),
+                        toNullIfEmpty(session_state)
                     ]
                 )
 
