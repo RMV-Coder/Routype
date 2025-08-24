@@ -7,7 +7,15 @@ import bcrypt from "bcryptjs";
 import { JWT } from "next-auth/jwt";
 import { FieldPacket, ResultSetHeader } from "mysql2";
 import MySQLAdapter from "../mysql-adapter";
-
+// interface MySQLUserWithPassword {
+//     id: number;
+//     name: string | null;
+//     email: string;
+//     password: string | null;
+//     email_verified_at: Date | null;
+//     image: string | null;
+//     type: 'business' | 'page' | 'admin' | 'default';
+// }
 export const authOptions: NextAuthOptions = {
     adapter: MySQLAdapter(),
     providers: [
@@ -30,7 +38,7 @@ export const authOptions: NextAuthOptions = {
                     console.error("Missing email or password");
                     return null;
                 }
-                const user = await getUserByEmail(credentials.email);
+                const user = await getUserByEmailWithPassword(credentials.email);
                 
                 if(!user) {
                     console.error("User not found");
@@ -66,48 +74,48 @@ export const authOptions: NextAuthOptions = {
     },
 
     callbacks: {
-        // async signIn({ user, account}: {user: NextAuthUser & Partial<User>, account: (NextAuthAccount & Partial<Account>) | null, profile?: Profile}){
-        //     let connection = null;
-        //     try{
-        //         connection = await pool.getConnection();
-        //         if(!account){
-        //             const [existing] : [User[], FieldPacket[]] = await connection.query(`SELECT * FROM user WHERE email = ? LIMIT 1`, [user.email]) as [User[], FieldPacket[]];
-        //             return existing.length > 0;
-        //         }
-        //         const query = `
-        //             SELECT u.*
-        //             FROM user u
-        //             INNER JOIN account a ON u.id = a.user_id
-        //             WHERE a.provider = ? AND a.provider_account_id = ?
-        //         `;
-        //         const [linkedAccount] : [User[],FieldPacket[]] = await connection.query(query, [account.provider, account.provider_account_id]) as [User[],FieldPacket[]];
-        //         if(linkedAccount.length > 0){
-        //             return true; // User exists, link session
-        //         }
-        //         if(user.email) {
-        //             const [existingUser] : [User[], FieldPacket[]] = await connection.query(`SELECT * FROM user WHERE email = ?`,[user.email]) as [User[], FieldPacket[]];
-        //             let userId: number;
-        //             if(existingUser.length > 0){
-        //                 userId = existingUser[0].id as unknown as number;
-        //             } else {
-        //                 const [result] : [ResultSetHeader, FieldPacket[]] = await connection.query(`INSERT INTO user (id, email, name, image) VALUES (?, ?, ?, ?)`, [user.id, user.email, user.name || null, user.image || null]) as [ResultSetHeader, FieldPacket[]];
-        //                 userId = result.insertId;
-        //             }
-        //             await connection.query(`
-        //                 INSERT INTO account (user_id, provider, provider_account_id, access_token, refresh_token, expires_at)
-        //                 VALUES ( ? , ? , ? , ? , ? , ? )`,
-        //                 [ userId, account.provider, account.provider_account_id, account.access_token || null, account.refresh_token || null, account.expires_at || null]
-        //             );
-        //             return true;
-        //         }
-        //         return false;
-        //     }catch(error){
-        //         console.error(error);
-        //         return false;
-        //     }finally{
-        //         if(connection) connection.release();
-        //     }
-        // },
+        async signIn({ user, account}: {user: NextAuthUser & Partial<User>, account: (NextAuthAccount & Partial<Account>) | null, profile?: Profile}){
+            let connection = null;
+            try{
+                connection = await pool.getConnection();
+                if(!account){
+                    const [existing] : [User[], FieldPacket[]] = await connection.query(`SELECT * FROM user WHERE email = ? LIMIT 1`, [user.email]) as [User[], FieldPacket[]];
+                    return existing.length > 0;
+                }
+                const query = `
+                    SELECT u.*
+                    FROM user u
+                    INNER JOIN account a ON u.id = a.user_id
+                    WHERE a.provider = ? AND a.provider_account_id = ?
+                `;
+                const [linkedAccount] : [User[],FieldPacket[]] = await connection.query(query, [account.provider, account.provider_account_id]) as [User[],FieldPacket[]];
+                if(linkedAccount.length > 0){
+                    return true; // User exists, link session
+                }
+                if(user.email) {
+                    const [existingUser] : [User[], FieldPacket[]] = await connection.query(`SELECT * FROM user WHERE email = ?`,[user.email]) as [User[], FieldPacket[]];
+                    let userId: number;
+                    if(existingUser.length > 0){
+                        userId = existingUser[0].id as unknown as number;
+                    } else {
+                        const [result] : [ResultSetHeader, FieldPacket[]] = await connection.query(`INSERT INTO user (id, email, name, image) VALUES (?, ?, ?, ?)`, [user.id, user.email, user.name || null, user.image || null]) as [ResultSetHeader, FieldPacket[]];
+                        userId = result.insertId;
+                    }
+                    await connection.query(`
+                        INSERT INTO account (user_id, provider, provider_account_id, access_token, refresh_token, expires_at)
+                        VALUES ( ? , ? , ? , ? , ? , ? )`,
+                        [ userId, account.provider, account.provider_account_id, account.access_token || null, account.refresh_token || null, account.expires_at || null]
+                    );
+                    return true;
+                }
+                return false;
+            }catch(error){
+                console.error(error);
+                return false;
+            }finally{
+                if(connection) connection.release();
+            }
+        },
 
 
 
@@ -135,13 +143,13 @@ export const authOptions: NextAuthOptions = {
     debug: process.env.NODE_ENV === "development",
 };
 
-const getUserByEmail = async (email: string): Promise<User | null> => {
+const getUserByEmailWithPassword = async (email: string): Promise<User | null> => {
     let connection = null;
     try{
         connection = await pool.getConnection();
         const userQuery = `
-            SELECT u.password 
-            FROM user u
+            SELECT id, name, email, password, email_verified_at, image, type
+            FROM user
             WHERE u.email = ?
             LIMIT 1`;
         const [rows]: [User[],FieldPacket[]] = await connection.query(userQuery, [email]) as  [User[],FieldPacket[]];
