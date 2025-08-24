@@ -7,6 +7,25 @@ export const pool = mysql.createPool({
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DATABASE,
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
+    connectionLimit: 15,
+    queueLimit: 0, 
+    charset: 'utf8mb4' // Better unicode support
 })
+
+// Helper function for transactions (bonus feature)
+export async function withTransaction<T>(
+    callback: (connection: mysql.PoolConnection) => Promise<T>
+): Promise<T> {
+    const connection = await pool.getConnection()
+    try {
+        await connection.beginTransaction()
+        const result = await callback(connection)
+        await connection.commit()
+        return result
+    } catch (error) {
+        await connection.rollback()
+        throw error
+    } finally {
+        connection.release()
+    }
+}
