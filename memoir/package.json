@@ -37,6 +37,7 @@
     "github-markdown-css": "^5.8.1",
     "lucide-react": "^0.536.0",
     "mysql2": "^3.14.3",
+    "nanoid": "^5.1.5",
     "next": "15.4.5",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",

@@ -1,4 +1,5 @@
 import { pool } from './db';
+import { nanoid } from 'nanoid';
 import { ResultSetHeader, FieldPacket, RowDataPacket } from 'mysql2';
 import type { Adapter, AdapterUser, AdapterAccount, AdapterSession, VerificationToken } from "next-auth/adapters";
 // import { User } from './definitions';
@@ -243,7 +244,7 @@ export default function MySQLAdapter(): Adapter {
         async createSession({ sessionToken, userId, expires }): Promise<AdapterSession> {
             try {
                 // Generate a session ID
-                const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                const sessionId = `sess_${nanoid()}`
                 
                 await pool.execute(
                     `INSERT INTO session (session_id, session_token, user_id, expires) 
@@ -281,7 +282,7 @@ export default function MySQLAdapter(): Adapter {
                 ) as [RowDataPacket[], FieldPacket[]]
 
                 if (rows.length === 0) return null
-
+                console.log("Session and User: ", JSON.stringify(rows[0]));
                 const { sessionToken: token, user_id, expires, id, name, email, emailVerified, image } = rows[0]
 
                 return {
