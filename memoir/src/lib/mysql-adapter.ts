@@ -174,7 +174,17 @@ export default function MySQLAdapter(): Adapter {
                     scope,
                     id_token,
                     session_state
-                } = account
+                } = account;
+
+                console.log('🔗 Linking account - Full account object:', JSON.stringify(account, null, 2));
+                console.log('🔗 Provider Account ID specifically:', providerAccountId);
+
+                // Ensure providerAccountId is not null/undefined
+                if (!providerAccountId) {
+                    console.error('❌ providerAccountId is required but was:', providerAccountId);
+                    console.error('❌ Full account object:', account);
+                    throw new Error('providerAccountId cannot be null or undefined');
+                }
 
                 await pool.execute(
                     `INSERT INTO account 
