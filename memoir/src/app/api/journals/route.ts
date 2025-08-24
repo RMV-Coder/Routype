@@ -1,7 +1,7 @@
 // app/api/posts/route.ts
 import { getServerSession } from "next-auth";
 import { NextResponse, NextRequest } from "next/server";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth/config";
 import { ResultSetHeader, FieldPacket } from "mysql2";
 import { pool } from "@/lib/db";
 import { Journal } from "@/lib/definitions"
