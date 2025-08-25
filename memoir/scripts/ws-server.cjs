@@ -5,6 +5,7 @@
 const http = require('http');
 const { Server } = require('socket.io');
 const mysql = require('mysql2/promise');
+const jwt = require('jsonwebtoken');
 
 const PORT = process.env.WS_PORT ? Number(process.env.WS_PORT) : 4001;
 const CORS_ORIGIN = process.env.WS_CORS_ORIGIN || '*';
@@ -32,7 +33,7 @@ async function createDbPool() {
         password: process.env.MYSQL_PASSWORD,
         database: process.env.MYSQL_DATABASE,
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: 15,
         queueLimit: 0,
         charset: 'utf8mb4',
     });
@@ -76,13 +77,22 @@ async function main() {
 
     io.use(async (socket, next) => {
         try {
+            const authToken = socket.handshake.auth && socket.handshake.auth.token;
+            const sharedSecret = process.env.REALTIME_JWT_SECRET || process.env.NEXTAUTH_SECRET;
+            if (authToken && sharedSecret) {
+                try {
+                    const decoded = jwt.verify(authToken, sharedSecret);
+                    socket.data.user = { id: String(decoded.sub), name: decoded.name || null, type: decoded.type || null };
+                    return next();
+                } catch (e) {
+                    return next(new Error('Unauthorized'));
+                }
+            }
+            // Fallback to cookie-based session lookup if token not provided
             const cookies = parseCookies(socket.handshake.headers.cookie || '');
-            // NextAuth v4 cookies
             const token = cookies['next-auth.session-token'] || cookies['__Secure-next-auth.session-token'];
             const result = await getSessionAndUserByToken(pool, token);
-            if (!result) {
-                return next(new Error('Unauthorized'));
-            }
+            if (!result) return next(new Error('Unauthorized'));
             socket.data.user = result.user;
             return next();
         } catch (err) {
@@ -140,13 +150,11 @@ async function main() {
     });
 
     httpServer.listen(PORT, () => {
-        // eslint-disable-next-line no-console
         console.log(`Socket.io server listening on port ${PORT} (path /realtime/socket.io)`);
     });
 }
 
 main().catch((err) => {
-    // eslint-disable-next-line no-console
     console.error('Socket server error:', err);
     process.exit(1);
 });
