@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "ws": "node ./scripts/ws-server.cjs"
   },
   "dependencies": {
     "@codemirror/lang-html": "^6.4.9",
@@ -37,12 +38,14 @@
     "github-markdown-css": "^5.8.1",
     "lucide-react": "^0.536.0",
     "mysql2": "^3.14.3",
+    "socket.io": "^4.7.5",
     "nanoid": "^5.1.5",
     "next": "15.4.5",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "socket.io-client": "^4.7.5",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-raw": "^7.0.0",

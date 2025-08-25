@@ -67,20 +67,6 @@ const data = {
       title: "Messages",
       url: "/messages",
       icon: MessageSquare ,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
     },
     // {
     //   title: "Add Entry",
