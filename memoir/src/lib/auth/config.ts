@@ -1,5 +1,6 @@
 import { NextAuthOptions, Session, Account as NextAuthAccount, User as NextAuthUser, Profile } from "next-auth"
 import GitHubProvider from "next-auth/providers/github";
+import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { pool } from "@/lib/db";
 import { User, Account } from "@/lib/definitions";
@@ -19,10 +20,10 @@ import MySQLAdapter from "../mysql-adapter";
 export const authOptions: NextAuthOptions = {
     adapter: MySQLAdapter(),
     providers: [
-        // GoogleProvider({
-        //     clientId: process.env.GOOGLE_CLIENT_ID!,
-        //     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        // }),
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        }),
         GitHubProvider({
             clientId: process.env.GITHUB_ID!,
             clientSecret: process.env.GITHUB_SECRET!
@@ -144,6 +145,10 @@ export const authOptions: NextAuthOptions = {
             console.log("session.user: ", JSON.stringify(session.user));
             console.log("user: ", JSON.stringify(user));//undefined
             if(session.user){
+                session.user.id = user.id;
+                session.user.name = user.name;
+                session.user.email = user.email;
+                session.user.image = user.image;
                 session.user.type = user.type;
             }
             return session;

@@ -107,8 +107,9 @@ const data = {
     // },
     {
       title: "My Journal",
-      url: "#/myjournal",
+      url: "/my-journal",
       icon: BookOpen,
+      isActive: true,
       items: [
         {
           title: "Add Entry",
@@ -202,7 +203,7 @@ const data = {
     },
     {
       name: "My Communities",
-      url: "/mycommunities",
+      url: "/my-communities",
       icon: Map,
     },
     {
