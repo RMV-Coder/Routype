@@ -7,7 +7,7 @@ const { Server } = require('socket.io');
 const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 
-const PORT = process.env.WS_PORT ? Number(process.env.WS_PORT) : 4001;
+const PORT = process.env.PORT || process.env.WS_PORT || 4001;
 const CORS_ORIGIN = process.env.WS_CORS_ORIGIN || '*';
 
 function parseCookies(cookieHeader) {
@@ -149,7 +149,7 @@ async function main() {
         });
     });
 
-    httpServer.listen(PORT, () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
         console.log(`Socket.io server listening on port ${PORT} (path /realtime/socket.io)`);
     });
 }
