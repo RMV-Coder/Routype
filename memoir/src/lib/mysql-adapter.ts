@@ -2,7 +2,7 @@ import { pool } from './db';
 import { nanoid } from 'nanoid';
 import { ResultSetHeader, FieldPacket, RowDataPacket } from 'mysql2';
 import type { Adapter, AdapterUser, AdapterAccount, AdapterSession, VerificationToken } from "next-auth/adapters";
-// import { User } from './definitions';
+
 /**
  * Custom MySQL Adapter using your existing database pool
  * Much cleaner and more efficient than manual connection management

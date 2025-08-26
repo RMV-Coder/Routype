@@ -1,12 +1,12 @@
-import { NextAuthOptions, Session, Account as NextAuthAccount, User as NextAuthUser, Profile } from "next-auth"
+import { NextAuthOptions, Session } from "next-auth"
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { pool } from "@/lib/db";
-import { User, Account } from "@/lib/definitions";
+import { User } from "@/lib/definitions";
 import bcrypt from "bcryptjs";
 import { JWT } from "next-auth/jwt";
-import { FieldPacket, ResultSetHeader } from "mysql2";
+import { FieldPacket } from "mysql2";
 import MySQLAdapter from "../mysql-adapter";
 // interface MySQLUserWithPassword {
 //     id: number;
