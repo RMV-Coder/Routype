@@ -65,10 +65,10 @@ function SignUpForm () {
                 gap: 2,
             }}
         >
-            <TextField id="name" name="name" label="Name" type="text" />
-            <TextField id="email" name="email" label="Email" type="email" />
-            <TextField id="password" name="password" label="Password" type="password" />
-            <Button type="submit">Sign up</Button>
+            <TextField size="small" id="name" name="name" label="Name" type="text" />
+            <TextField size="small" id="email" name="email" label="Email" type="email" />
+            <TextField size="small" id="password" name="password" label="Password" type="password" />
+            <Button variant="outlined" size="small" type="submit">Sign up</Button>
         </Box>
     );
 }
