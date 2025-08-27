@@ -47,7 +47,7 @@ export default function LayoutClient({children,}:{children:React.ReactNode;}){
                             </BreadcrumbItem>
                             <BreadcrumbSeparator className="hidden md:block" />
                             <BreadcrumbItem>
-                            {pathname.includes('/my-journal/') &&<BreadcrumbPage>{pathname.split('/').pop()?.replace(/-/g, ' ').replace(/\s+/g, ' ').replace(/^\w|\s\w/g, (m) => m.toUpperCase())}</BreadcrumbPage>}
+                            {pathname.includes('/my-journals/') &&<BreadcrumbPage>{pathname.split('/').pop()?.replace(/-/g, ' ').replace(/\s+/g, ' ').replace(/^\w|\s\w/g, (m) => m.toUpperCase())}</BreadcrumbPage>}
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>}
