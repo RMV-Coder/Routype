@@ -23,7 +23,7 @@ function initials(name?: string | null) {
     return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
 }
 
-export function Chat({ room }: { room?: string }) {
+export function Chat({ room, title }: { room?: string; title?: string }) {
     const [socketState, socket] = useSocket();
     const [pending, startTransition] = useTransition();
     const [input, setInput] = useState("");
@@ -68,7 +68,7 @@ export function Chat({ room }: { room?: string }) {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [optimisticMessages.length, messages.length]);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!socket || !input.trim()) return;
         const tempId = `tmp_${Date.now()}`;
         const optimistic: ChatMessage = {
@@ -84,13 +84,30 @@ export function Chat({ room }: { room?: string }) {
         startTransition(() => {
             socket.emit("chat:send", { room, message: optimistic.message, tempId });
         });
+
+        // Persist to API (ciphertexts should be provided by client-side E2EE; for now, store plaintext fallback)
+        try {
+            await fetch("/api/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    roomId: room,
+                    ciphertexts: [],
+                    textFallback: optimistic.message,
+                }),
+            });
+        } catch {
+            // Optionally show an error toast; keep optimistic UI
+        }
     };
 
     return (
         <Card className="p-4 grid gap-3">
             <div className="flex items-center justify-between">
-                <div className="text-sm">
-                    {socketState.isConnected ? "Connected" : socketState.isReconnecting ? "Reconnecting..." : "Disconnected"}
+                <div className="flex items-center gap-2">
+                    {/* Online badge using a simple dot; replace with MUI Avatar badge if desired */}
+                    <span className={`h-2 w-2 rounded-full ${socketState.isConnected ? "bg-green-500" : "bg-gray-400"}`} />
+                    <div className="text-sm font-medium">{title || room || "Messages"}</div>
                 </div>
                 <div className="text-xs text-muted-foreground">
                     {socketState.me ? `You: ${socketState.me.name ?? socketState.me.id}` : ""}
