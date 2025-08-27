@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { pool } from "@/lib/db";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+type RoomRow = RowDataPacket & { id: number };
 
 // POST /api/messages/dm { otherUserId, initialMessage? }
 export async function POST(req: NextRequest) {
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
   try {
     await connection.beginTransaction();
     // find or create a DM room with both members
-    const [rooms] = await connection.query(
+    const [rooms] = await connection.query<RoomRow[]>(
       `SELECT r.id
        FROM message_room r
        JOIN message_room_member m1 ON m1.room_id = r.id AND m1.user_id = ?
@@ -26,14 +28,14 @@ export async function POST(req: NextRequest) {
       [session.user.id, otherUserId]
     );
     let roomId: number;
-    if ((rooms as any[]).length) {
-      roomId = (rooms as any[])[0].id;
+    if (rooms.length) {
+      roomId = rooms[0].id;
     } else {
-      const [r] = await connection.query(
+      const [r] = await connection.query<ResultSetHeader>(
         `INSERT INTO message_room (room_type, title, created_by) VALUES ('dm', NULL, ?)`,
         [session.user.id]
       );
-      roomId = (r as any).insertId;
+      roomId = r.insertId;
       await connection.query(
         `INSERT INTO message_room_member (room_id, user_id, role) VALUES (?, ?, 'member'), (?, ?, 'member')`,
         [roomId, session.user.id, roomId, otherUserId]
@@ -41,11 +43,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (initialMessage && String(initialMessage).trim().length) {
-      const [msg] = await connection.query(
+      const [msg] = await connection.query<ResultSetHeader>(
         `INSERT INTO message (room_id, sender_id, text_content) VALUES (?, ?, ?)`,
         [roomId, session.user.id, String(initialMessage)]
       );
-      const messageId = (msg as any).insertId as number;
+      const messageId = msg.insertId;
       await connection.commit();
       return NextResponse.json({ success: true, roomId, messageId });
     }
