@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
        LIMIT 1`,
       [session.user.id, userId, userId, session.user.id]
     );
-    if ((exists as any[]).length) {
+    const existsRows = exists as unknown as Array<{ id: number }>;
+    if (existsRows.length) {
       return NextResponse.json({ success: true, message: "Already requested or friends" });
     }
     await connection.query(
