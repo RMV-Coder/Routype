@@ -92,16 +92,16 @@ const data = {
     //   ],
     // },
     {
-      title: "My Journal",
-      url: "/my-journal",
+      title: "My Journals",
+      url: "/my-journals",
       icon: BookOpen,
       isActive: true,
-      items: [
-        {
-          title: "Add Entry",
-          url: "#",
-          // icon: SquarePlus,
-        },
+      // items: [
+      //   {
+      //     title: "Add Entry",
+      //     url: "#",
+      //     // icon: SquarePlus,
+      //   },
         // {
         //   title: "Team",
         //   url: "#",
@@ -114,7 +114,7 @@ const data = {
         //   title: "Limits",
         //   url: "#",
         // },
-      ],
+      // ],
     },
     {
       title: "Streaks",
@@ -122,19 +122,19 @@ const data = {
       icon: Zap,
       items: [
         {
-          title: "General",
+          title: "Writing",
           url: "#",
         },
         {
-          title: "Team",
+          title: "Reading",
           url: "#",
         },
         {
-          title: "Billing",
+          title: "Typing",
           url: "#",
         },
         {
-          title: "Limits",
+          title: "Challenges",
           url: "#",
         },
       ],

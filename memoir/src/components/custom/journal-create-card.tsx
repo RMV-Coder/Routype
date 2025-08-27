@@ -25,15 +25,43 @@ export function JournalCreateCard() {
 	const [tags, setTags] = useState<string>("");
 	const [cover, setCover] = useState<File | null>(null);
 	const [isPaid, setIsPaid] = useState(false); // placeholder gating flag
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const router = useRouter();
 
-	const onSubmit = (e: React.FormEvent) => {
+	const onSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!title.trim()) return;
-		const slug = slugify(title);
-		// TODO: Persist journal here if needed; for now just navigate
-		setOpen(false);
-		router.push(`/my-journals/${encodeURIComponent(slug)}`);
+		if (!title.trim() || isSubmitting) return;
+		setErrorMessage(null);
+		setIsSubmitting(true);
+		try {
+			const res = await fetch("/api/journals", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					title: title.trim(),
+					description: description.trim() || null,
+					visibility: "public",
+				}),
+			});
+			if (res.status === 401) {
+				router.push("/auth/signin");
+				return;
+			}
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				throw new Error(data?.error || "Failed to create journal");
+			}
+			// const data = await res.json(); // contains new id if needed later
+			const slug = slugify(title);
+			setOpen(false);
+			router.push(`/my-journals/${encodeURIComponent(slug)}`);
+		} catch (err: unknown) {
+			const message = err instanceof Error ? err.message : "Something went wrong";
+			setErrorMessage(message);
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	return (
@@ -59,6 +87,9 @@ export function JournalCreateCard() {
 							<span className="text-sm">Tags (comma separated, optional)</span>
 							<Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="travel, photography" />
 						</label>
+						{errorMessage ? (
+							<p className="text-sm text-red-600">{errorMessage}</p>
+						) : null}
 						<Separator />
 						<label className="grid gap-1">
 							<span className="text-sm">Cover image (optional, paid)</span>
@@ -66,8 +97,8 @@ export function JournalCreateCard() {
 							{!isPaid ? <span className="text-xs text-muted-foreground">Upgrade to enable cover images</span> : null}
 						</label>
 						<div className="flex justify-end gap-2 pt-2">
-							<Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-							<Button type="submit">Create</Button>
+							<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>Cancel</Button>
+							<Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Creating..." : "Create"}</Button>
 						</div>
 					</form>
 				</DialogContent>
