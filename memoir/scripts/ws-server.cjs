@@ -3,12 +3,15 @@
 // Run with: npm run ws
 
 const http = require('http');
+const express = require('express');
 const { Server } = require('socket.io');
 const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 
 const PORT = process.env.PORT || process.env.WS_PORT || 4001;
 const CORS_ORIGIN = process.env.WS_CORS_ORIGIN || '*';
+
+
 
 function parseCookies(cookieHeader) {
     const cookies = {};
@@ -65,14 +68,19 @@ async function getSessionAndUserByToken(pool, sessionToken) {
 }
 
 async function main() {
+    const app = express();
     const pool = await createDbPool();
 
-    const httpServer = http.createServer();
+    const httpServer = http.createServer(app);
     const io = new Server(httpServer, {
         cors: { origin: CORS_ORIGIN, methods: ['GET', 'POST'], credentials: true },
         path: '/realtime/socket.io',
         allowEIO3: false,
         transports: ['websocket', 'polling'],
+    });
+    app.get('/api/ping', (req, res) => {
+        console.log('Ping received! Keeping server alive...');
+      return res.status(200).send('Ping received! Server is active.');
     });
 
     io.use(async (socket, next) => {
@@ -104,6 +112,7 @@ async function main() {
         const user = socket.data.user;
         const userRoom = `user:${user.id}`;
         socket.join(userRoom);
+        console.log(`User ${user.id} connected to room ${userRoom}`);
 
         socket.emit('presence:me', { id: user.id, name: user.name, type: user.type });
         socket.broadcast.emit('presence:join', { id: user.id, name: user.name });
