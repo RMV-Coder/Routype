@@ -168,7 +168,7 @@ const getUserByEmailWithPassword = async (email: string): Promise<User | null> =
         const userQuery = `
             SELECT id, name, email, password, email_verified_at, image, type
             FROM user
-            WHERE u.email = ?
+            WHERE email = ?
             LIMIT 1`;
         const [rows]: [User[],FieldPacket[]] = await connection.query(userQuery, [email]) as  [User[],FieldPacket[]];
         if (rows.length === 0){
