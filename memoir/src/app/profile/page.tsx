@@ -14,7 +14,7 @@ export default function Home() {
   },[session]);
   return (
       <>
-      <ProfileCard name={session?.user.name as string} image={session?.user.image as string}/>
+      <ProfileCard name={session?.user.name as string} image={session?.user.image as string} showActions={false} />
       <PeopleYouMayKnow />
       </>
   )
