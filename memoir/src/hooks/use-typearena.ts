@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSocket } from "./use-socket";
 
 export type TypeArenaParticipant = {
@@ -91,12 +91,15 @@ export function useTypeArena(options?: {
         };
     }, [socket]);
 
+    type CreateJoinAck = { ok: boolean; match?: TypeArenaMatch };
+    type BasicAck = { ok: boolean };
+
     const actions = useMemo(() => {
         return {
             create: async (text?: string): Promise<TypeArenaMatch | undefined> => {
                 if (!socket) return;
-                return new Promise((resolve) => {
-                    socket.emit("ta:create", { text }, (res: any) => {
+                return new Promise<TypeArenaMatch | undefined>((resolve) => {
+                    socket.emit("ta:create", { text }, (res: CreateJoinAck) => {
                         if (res?.ok && res.match) {
                             resolve(res.match as TypeArenaMatch);
                         } else {
@@ -107,8 +110,8 @@ export function useTypeArena(options?: {
             },
             join: async (matchId: string): Promise<TypeArenaMatch | undefined> => {
                 if (!socket) return;
-                return new Promise((resolve) => {
-                    socket.emit("ta:join", { matchId }, (res: any) => {
+                return new Promise<TypeArenaMatch | undefined>((resolve) => {
+                    socket.emit("ta:join", { matchId }, (res: CreateJoinAck) => {
                         if (res?.ok && res.match) resolve(res.match as TypeArenaMatch);
                         else resolve(undefined);
                     });
@@ -116,9 +119,9 @@ export function useTypeArena(options?: {
             },
             leave: async (matchId: string): Promise<boolean> => {
                 if (!socket) return false;
-                return new Promise((resolve) => {
-                    socket.emit("ta:leave", { matchId }, (res: any) => {
-                        resolve(!!res?.ok);
+                return new Promise<boolean>((resolve) => {
+                    socket.emit("ta:leave", { matchId }, (res: BasicAck) => {
+                        resolve(Boolean(res?.ok));
                     });
                 });
             },
