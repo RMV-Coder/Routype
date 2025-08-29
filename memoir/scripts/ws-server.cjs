@@ -158,6 +158,160 @@ async function main() {
         });
     });
 
+    // -------------------- TypeArena Multiplayer (in-memory) --------------------
+    /**
+     * Match schema (in-memory):
+     * {
+     *   id: string,
+     *   createdAt: number,
+     *   status: 'lobby' | 'countdown' | 'running' | 'finished',
+     *   text: string,
+     *   participants: {
+     *     [userId]: { id, name, ready: boolean, progress: number, wpm: number, accuracy: number, finishedAt?: number }
+     *   },
+     *   caret: { [userId]: { index: number, ts: number } },
+     *   winnerId?: string
+     * }
+     */
+    const matches = new Map();
+
+    function broadcastMatchState(io, matchId) {
+        const match = matches.get(matchId);
+        if (!match) return;
+        io.to(`ta:${matchId}`).emit('ta:state', sanitizeMatch(match));
+    }
+
+    function sanitizeMatch(match) {
+        // No secrets currently; return shallow clone to avoid external mutation
+        return {
+            id: match.id,
+            createdAt: match.createdAt,
+            status: match.status,
+            text: match.text,
+            participants: match.participants,
+            caret: match.caret,
+            winnerId: match.winnerId || null,
+        };
+    }
+
+    function createMatch({ host, text }) {
+        const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+        const match = {
+            id,
+            createdAt: Date.now(),
+            status: 'lobby',
+            text: text || defaultSampleText(),
+            participants: {
+                [host.id]: { id: host.id, name: host.name || `User ${host.id}` , ready: false, progress: 0, wpm: 0, accuracy: 100 },
+            },
+            caret: {},
+        };
+        matches.set(id, match);
+        return match;
+    }
+
+    function defaultSampleText() {
+        return 'The quick brown fox jumps over the lazy dog.';
+    }
+
+    io.on('connection', (socket) => {
+        const user = socket.data.user;
+
+        socket.on('ta:create', ({ text } = {}, ack) => {
+            const match = createMatch({ host: user, text });
+            socket.join(`ta:${match.id}`);
+            if (typeof ack === 'function') ack({ ok: true, match: sanitizeMatch(match) });
+            else socket.emit('ta:state', sanitizeMatch(match));
+        });
+
+        socket.on('ta:join', ({ matchId }, ack) => {
+            const match = matches.get(matchId);
+            if (!match) {
+                if (typeof ack === 'function') ack({ ok: false, error: 'not_found' });
+                return;
+            }
+            if (!match.participants[user.id]) {
+                match.participants[user.id] = { id: user.id, name: user.name || `User ${user.id}`, ready: false, progress: 0, wpm: 0, accuracy: 100 };
+            }
+            socket.join(`ta:${match.id}`);
+            broadcastMatchState(io, match.id);
+            if (typeof ack === 'function') ack({ ok: true, match: sanitizeMatch(match) });
+        });
+
+        socket.on('ta:leave', ({ matchId }, ack) => {
+            const match = matches.get(matchId);
+            if (!match) return typeof ack === 'function' && ack({ ok: false, error: 'not_found' });
+            socket.leave(`ta:${match.id}`);
+            delete match.participants[user.id];
+            broadcastMatchState(io, match.id);
+            if (Object.keys(match.participants).length === 0) {
+                matches.delete(match.id);
+            }
+            if (typeof ack === 'function') ack({ ok: true });
+        });
+
+        socket.on('ta:ready', ({ matchId, ready }, ack) => {
+            const match = matches.get(matchId);
+            if (!match || match.status !== 'lobby') return typeof ack === 'function' && ack({ ok: false });
+            if (!match.participants[user.id]) return typeof ack === 'function' && ack({ ok: false });
+            match.participants[user.id].ready = !!ready;
+            broadcastMatchState(io, match.id);
+            // Auto-start when everyone ready and at least 2 players
+            const allReady = Object.values(match.participants).length >= 2 && Object.values(match.participants).every(p => p.ready);
+            if (allReady) {
+                match.status = 'countdown';
+                io.to(`ta:${match.id}`).emit('ta:countdown', { at: Date.now(), seconds: 3 });
+                setTimeout(() => {
+                    // Guard if match was deleted
+                    const m = matches.get(match.id);
+                    if (!m) return;
+                    m.status = 'running';
+                    io.to(`ta:${m.id}`).emit('ta:start', { at: Date.now() });
+                    broadcastMatchState(io, m.id);
+                }, 3000);
+            }
+            if (typeof ack === 'function') ack({ ok: true });
+        });
+
+        socket.on('ta:caret', ({ matchId, index }) => {
+            const match = matches.get(matchId);
+            if (!match || match.status !== 'running') return;
+            match.caret[user.id] = { index: Number(index) || 0, ts: Date.now() };
+            socket.to(`ta:${match.id}`).emit('ta:caret', { userId: user.id, index: match.caret[user.id].index });
+        });
+
+        socket.on('ta:progress', ({ matchId, progress, wpm, accuracy }) => {
+            const match = matches.get(matchId);
+            if (!match || (match.status !== 'running' && match.status !== 'countdown')) return;
+            const p = match.participants[user.id];
+            if (!p) return;
+            p.progress = Math.max(0, Math.min(100, Number(progress) || 0));
+            if (typeof wpm === 'number') p.wpm = Math.max(0, wpm);
+            if (typeof accuracy === 'number') p.accuracy = Math.max(0, Math.min(100, accuracy));
+            broadcastMatchState(io, match.id);
+            if (p.progress >= 100 && match.status === 'running') {
+                p.finishedAt = Date.now();
+                if (!match.winnerId) {
+                    match.winnerId = user.id;
+                }
+                const everyoneDone = Object.values(match.participants).every(pp => (pp.progress || 0) >= 100);
+                if (everyoneDone) {
+                    match.status = 'finished';
+                    io.to(`ta:${match.id}`).emit('ta:ended', { winnerId: match.winnerId, at: Date.now() });
+                }
+            }
+        });
+
+        socket.on('ta:finish', ({ matchId }, ack) => {
+            const match = matches.get(matchId);
+            if (!match) return typeof ack === 'function' && ack({ ok: false });
+            const p = match.participants[user.id];
+            if (p) p.progress = 100;
+            broadcastMatchState(io, match.id);
+            if (typeof ack === 'function') ack({ ok: true });
+        });
+    });
+
     httpServer.listen(PORT, '0.0.0.0', () => {
         console.log(`Socket.io server listening on port ${PORT} (path /realtime/socket.io)`);
     });
