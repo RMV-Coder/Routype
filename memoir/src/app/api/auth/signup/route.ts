@@ -15,11 +15,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email already in use" }, { status: 409 });
     }
     const hash = await bcrypt.hash(password, 10);
-    await connection.query(
+    const [result] = await connection.query(
       `INSERT INTO user (name, email, password) VALUES (?, ?, ?)`,
       [name || null, email, hash]
     );
-    return NextResponse.json({ success: true });
+    const insertResult = result as {insertId: number};
+    const userId = insertResult.insertId;
+
+    await connection.query(`
+        INSERT INTO account (user_id, provider_type, provider, provider_account_id, account_type) VALUES (?, ?, ?, ?, ?)`,
+        [userId, 'credentials', "credentials", email, "credentials"]
+    );
+    return NextResponse.json({ success: true, message: "User signed up successfully" }, {status: 201});
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Failed to create account" }, { status: 500 });

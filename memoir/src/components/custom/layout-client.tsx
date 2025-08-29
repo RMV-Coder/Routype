@@ -19,7 +19,7 @@ import React from 'react';
 
 export default function LayoutClient({children,}:{children:React.ReactNode;}){
     const pathname = usePathname();
-    const showLayout = pathname !== '/auth/signin' && pathname !== '/auth/error' && pathname !== '/auth/signup';
+    const showLayout = pathname !== '/auth/signin' && pathname !== '/auth/error' && pathname !== '/auth/signup' && pathname !== '/terms-of-service' && pathname !== '/privacy-policy';
     if(!showLayout){
         return (
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

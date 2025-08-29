@@ -54,18 +54,23 @@ export const authOptions: NextAuthOptions = {
                     console.error("Invalid password");
                     return null;
                 }
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.type || "user", 
-                };
+                console.log(JSON.stringify({
+                    user
+                }))
+                return user;
+                // return {
+                //     id: user.id,
+                //     name: user.name,
+                //     email: user.email,
+                //     emailVerified: user.email_verified_at ?? null,
+                //     image: user.image,
+                // };
             },
         }),
     ],
     
     session: {
-        strategy: "database" as const,
+        strategy: "jwt" as const, 
         maxAge: 30 * 24 * 60 * 60, // 30 days
         updateAge: 2 * 24 * 60 * 60, // new session every 2 days
     },
@@ -141,16 +146,17 @@ export const authOptions: NextAuthOptions = {
             }
             return token;
         },
-        async session({ session, user }: { session: Session; user: User}){
+        async session({ session, user, token }: { session: Session; user: User, token: JWT}){
             console.log("session.user: ", JSON.stringify(session.user));
-            console.log("user: ", JSON.stringify(user));//undefined
+            console.log("user: ", JSON.stringify(user));
+            console.log("token: ", JSON.stringify(token))
             if(session.user){
-                session.user.id = user.id;
-                session.user.name = user.name;
-                session.user.email = user.email;
-                session.user.image = user.image;
-                session.user.type = user.type;
-            }
+                session.user.id = token?.id ?? session.user.id;
+                session.user.name = token?.name ?? session.user.name;
+                session.user.email = token?.email ?? session.user.email;
+                session.user.image = token?.picture ?? session.user.image;
+                session.user.type = token?.type ?? session.user.type ?? "user";
+            } 
             return session;
         },
     },

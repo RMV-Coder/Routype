@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { SignInPage } from '@toolpad/core/SignInPage';
 import { signIn as nextAuthSignIn } from 'next-auth/react'; 
 import { useRouter } from 'next/navigation';
+import { Separator } from "@/components/ui/separator"
 // import { signIn as webauthnSignIn } from 'next-auth/webauthn';
 // import { providerMap } from '../../../auth';
 // import serverSignIn from './actions';
@@ -18,17 +19,23 @@ interface AuthResponse {
 }
 
 const providers = [
-    { id: 'credentials', name: 'Email & Password' },
+    // { id: 'credentials', name: 'Email & Password' },
     //{ id: 'passkey', name: 'Passkey'}
     { id: 'github', name: 'GitHub' },
-    { id: 'google', name: 'Google' },
+    // { id: 'google', name: 'Google' },
 ];
 
 function SignUpLink () {
     return(
+    <div className="flex flex-col items-center">
+    <span style={{ fontSize: '0.8rem' }}>
+        By signing in, you are agreeing to our <Link href="/privacy-policy">privacy policy</Link> and <Link href="/terms-of-service">terms of service</Link>.
+    </span>
+    {/* <Separator className={'mt-2 mb-2'}/>
     <span style={{ fontSize: '0.8rem' }}>
         Don&apos;t have an account?&nbsp;<Link href="/auth/signup">Sign up</Link>
-    </span>);
+    </span> */}
+    </div>);
 }
 function ForgotPasswordLink() {
   return (
@@ -45,7 +52,7 @@ function AppTitle() {
         // Routype
         // </code>
         <AspectRatio ratio={109 / 33} style={{alignSelf:'center', justifySelf:'center'}}>
-            <Image src="/logo_routype.svg" alt="Image" width={218} height={66} className="rounded-md object-cover" />
+            <Image priority src="/logo_routype.svg" alt="Image" width={218} height={66} className="rounded-md object-cover" />
         </AspectRatio>
     );
 }
