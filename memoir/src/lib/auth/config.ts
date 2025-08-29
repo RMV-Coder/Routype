@@ -28,45 +28,45 @@ export const authOptions: NextAuthOptions = {
             clientId: process.env.GITHUB_ID!,
             clientSecret: process.env.GITHUB_SECRET!
         }),
-        CredentialsProvider({
-            name: "Credentials",
-            credentials: {
-                email: { label: "Email", type: "email" },
-                password: { label: "Password", type: "Password" },
-            },
-            async authorize(credentials) {
-                if(!credentials?.email || !credentials?.password){
-                    console.error("Missing email or password");
-                    return null;
-                }
-                const user = await getUserByEmailWithPassword(credentials.email);
+        // CredentialsProvider({
+        //     name: "Credentials",
+        //     credentials: {
+        //         email: { label: "Email", type: "email" },
+        //         password: { label: "Password", type: "Password" },
+        //     },
+        //     async authorize(credentials) {
+        //         if(!credentials?.email || !credentials?.password){
+        //             console.error("Missing email or password");
+        //             return null;
+        //         }
+        //         const user = await getUserByEmailWithPassword(credentials.email);
                 
-                if(!user) {
-                    console.error("User not found");
-                    return null;
-                }
-                const isPasswordValid = await bcrypt.compare(
-                    credentials.password,
-                    user.password!
-                )
+        //         if(!user) {
+        //             console.error("User not found");
+        //             return null;
+        //         }
+        //         const isPasswordValid = await bcrypt.compare(
+        //             credentials.password,
+        //             user.password!
+        //         )
                 
-                if(!isPasswordValid){
-                    console.error("Invalid password");
-                    return null;
-                }
-                console.log(JSON.stringify({
-                    user
-                }))
-                return user;
-                // return {
-                //     id: user.id,
-                //     name: user.name,
-                //     email: user.email,
-                //     emailVerified: user.email_verified_at ?? null,
-                //     image: user.image,
-                // };
-            },
-        }),
+        //         if(!isPasswordValid){
+        //             console.error("Invalid password");
+        //             return null;
+        //         }
+        //         console.log(JSON.stringify({
+        //             user
+        //         }))
+        //         return user;
+        //         // return {
+        //         //     id: user.id,
+        //         //     name: user.name,
+        //         //     email: user.email,
+        //         //     emailVerified: user.email_verified_at ?? null,
+        //         //     image: user.image,
+        //         // };
+        //     },
+        // }),
     ],
     
     session: {

@@ -4,7 +4,7 @@ export type User = {
     name?: string | null;
     password?: string;
     type?: string;
-    image?: string;
+    image?: string | null;
     email_verified_at ?: Date | null;
 }
 export interface Profile {
