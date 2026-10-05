@@ -17,7 +17,7 @@ export default function MySQLAdapter(): Adapter {
                 const [result] = await pool.execute(
                     `INSERT INTO user (name, email, email_verified_at, image, is_active) 
                      VALUES (?, ?, ?, ?, 1)`,
-                    [name, email, emailVerifiedAt, image]
+                    [name ?? null, email, emailVerifiedAt, image ?? null]
                 ) as [ResultSetHeader, FieldPacket[]]
 
                 const userId = result.insertId
@@ -120,13 +120,15 @@ export default function MySQLAdapter(): Adapter {
         async updateUser(user): Promise<AdapterUser> {
             try {
                 const { id, name, email, emailVerified, image } = user
+                // NextAuth passes partial users: keep columns it did not send
                 const emailVerifiedAt = emailVerified ? new Date(emailVerified) : null
                 
                 await pool.execute(
                     `UPDATE user 
-                     SET name = ?, email = ?, email_verified_at = ?, image = ?, last_update = CURRENT_TIMESTAMP 
+                     SET name = COALESCE(?, name), email = COALESCE(?, email),
+                         email_verified_at = COALESCE(?, email_verified_at), image = COALESCE(?, image), last_update = CURRENT_TIMESTAMP 
                      WHERE id = ?`,
-                    [name, email, emailVerifiedAt, image, id]
+                    [name ?? null, email ?? null, emailVerifiedAt, image ?? null, id]
                 )
 
                 const [rows] = await pool.execute(
@@ -308,8 +310,8 @@ export default function MySQLAdapter(): Adapter {
         async updateSession({ sessionToken, expires }): Promise<AdapterSession | null | undefined> {
             try {
                 await pool.execute(
-                    `UPDATE session SET expires = ? WHERE session_token = ?`,
-                    [expires, sessionToken]
+                    `UPDATE session SET expires = COALESCE(?, expires) WHERE session_token = ?`,
+                    [expires ?? null, sessionToken]
                 )
 
                 const [rows] = await pool.execute(

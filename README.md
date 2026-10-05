@@ -62,7 +62,7 @@ achievements, XP and leaderboards.
 
 ## Tech stack
 
-- [Next.js 15](https://nextjs.org) (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix)
+- [Next.js 15.5](https://nextjs.org) (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix)
 - [NextAuth](https://next-auth.js.org) — email & password, plus GitHub / Google when configured (JWT sessions)
 - MySQL 8 via `mysql2`
 - Socket.IO realtime server (`server/ws-server.cjs`) for races, ghost carets and chat
@@ -126,6 +126,17 @@ cp .env.example .env.local
 
 Fill in the MySQL credentials and a `NEXTAUTH_SECRET` (`openssl rand -base64 32`). GitHub / Google sign-in buttons
 only appear when their client id and secret are set; email & password sign-up always works.
+
+**OAuth apps.** Register the callback URL of every environment with the provider, and set `NEXTAUTH_URL` to that
+environment's origin (in production: your real domain, e.g. `https://routype.vercel.app`):
+
+| Provider | Where | Callback URL |
+| --- | --- | --- |
+| GitHub | GitHub → Settings → Developer settings → OAuth Apps → *your app* → **Authorization callback URL** | `https://<your-domain>/api/auth/callback/github` |
+| Google | Google Cloud Console → APIs & Services → Credentials → *OAuth client* → **Authorized redirect URIs** | `https://<your-domain>/api/auth/callback/google` |
+
+A GitHub OAuth App accepts a single callback URL, so use a separate OAuth App (with its own `GITHUB_ID` /
+`GITHUB_SECRET`) for local development (`http://localhost:3000/api/auth/callback/github`).
 
 ### 3. Create the database
 

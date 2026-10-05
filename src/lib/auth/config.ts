@@ -23,6 +23,9 @@ function buildProviders(): Provider[] {
         providers.push(GitHubProvider({
             clientId: process.env.GITHUB_ID,
             clientSecret: process.env.GITHUB_SECRET,
+            // GitHub now sends `iss` on the OAuth callback (RFC 9207); openid-client rejects
+            // it ("issuer must be configured on the issuer") unless the provider declares one.
+            issuer: process.env.GITHUB_OAUTH_ISSUER || "https://github.com/login/oauth",
         }));
     }
     providers.push(CredentialsProvider({
