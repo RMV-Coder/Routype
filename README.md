@@ -62,7 +62,7 @@ achievements, XP and leaderboards.
 
 ## Tech stack
 
-- [Next.js 15](https://nextjs.org) (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix)
+- [Next.js 15.5](https://nextjs.org) (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix)
 - [Supabase](https://supabase.com) — Postgres with row level security on every table, and Supabase Auth
   (email & password plus OAuth such as Google / GitHub) via `@supabase/ssr` cookie sessions
 - Socket.IO realtime server (`server/ws-server.cjs`) for races, ghost carets and chat
