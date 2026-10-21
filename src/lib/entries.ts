@@ -1,7 +1,8 @@
+import "server-only";
 import { z } from "zod";
-import type { RowDataPacket } from "mysql2";
-import { pool } from "@/lib/db";
-import { PIECE_KINDS, type EntryWithAuthor } from "@/lib/definitions";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
+import { PIECE_KINDS, type EntryWithAuthor, type Visibility } from "@/lib/definitions";
 
 export const entryInputSchema = z.object({
   journalId: z.number().int().positive(),
@@ -16,28 +17,19 @@ export const entryInputSchema = z.object({
 
 export const entryPatchSchema = entryInputSchema.omit({ journalId: true }).partial();
 
-export type EntryRow = EntryWithAuthor & RowDataPacket & { author_private: number; journal_visibility: "public" | "friends" | "private" };
+/** A row of the `entries_with_author` view (entry + journal + author). */
+export type EntryRow = EntryWithAuthor & { author_private: boolean; journal_visibility: Visibility };
 
-/** SELECT list + joins for an entry with its author and journal (alias e / j / u). */
-export const ENTRY_WITH_AUTHOR_SQL = `
-  SELECT e.id, e.journal_id, e.title, e.kind, e.content, e.visibility, e.allow_typing, e.status,
-         e.scheduled_at, e.published_at, e.created_at, e.updated_at,
-         j.title AS journal_title, j.visibility AS journal_visibility,
-         u.id AS author_id, u.name AS author_name, u.image AS author_image, u.is_private AS author_private
-  FROM entry e
-  JOIN journal j ON j.id = e.journal_id
-  JOIN user u ON u.id = j.user_id`;
+export const ENTRY_WITH_AUTHOR_VIEW = "entries_with_author";
 
 export function serializeEntry(row: EntryRow): EntryWithAuthor {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { author_private, journal_visibility, ...rest } = row;
-  return { ...rest, allow_typing: !!row.allow_typing } as EntryWithAuthor;
+  return rest;
 }
 
 /** Publishes scheduled pieces whose time has come (run lazily before reading feeds). */
-export async function publishDueEntries(): Promise<void> {
-  await pool.query(
-    `UPDATE entry SET status = 'published', published_at = scheduled_at
-     WHERE status = 'scheduled' AND scheduled_at <= NOW()`,
-  );
+export async function publishDueEntries(supabase: SupabaseClient<Database>): Promise<void> {
+  const { error } = await supabase.rpc("publish_due_entries");
+  if (error) throw error;
 }

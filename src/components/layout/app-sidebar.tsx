@@ -3,11 +3,11 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { useSession } from "next-auth/react"
 import { BookOpen, Keyboard, MessageSquare, Settings, SquareUser, Trophy, Medal, Waves } from "lucide-react"
 import { NavMain } from "@/components/layout/nav-main"
 import { NavSecondary } from "@/components/layout/nav-secondary"
 import { NavUser } from "@/components/layout/nav-user"
+import { useCurrentUser } from "@/app/providers"
 import {
   Sidebar,
   SidebarContent,
@@ -36,7 +36,7 @@ const secondary = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = useSession()
+  const { user } = useCurrentUser()
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -57,7 +57,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={secondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        {session && <NavUser user={session.user} />}
+        {user && <NavUser user={user} />}
       </SidebarFooter>
     </Sidebar>
   )

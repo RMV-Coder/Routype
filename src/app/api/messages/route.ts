@@ -1,110 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
-import { pool } from "@/lib/db";
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import { badRequest, getAuth, parseId, parseUserId, serverError, unauthorized } from "@/lib/api";
 
 // POST /api/messages: { roomId, ciphertexts: [{ recipientId, cipher, nonce, version }], textFallback? }
-type Ciphertext = { recipientId: number; cipher: string; nonce?: string | null; version?: number };
+type Ciphertext = { recipientId: string; cipher: string; nonce?: string | null; version?: number };
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const body = await req.json();
+  const auth = await getAuth();
+  if (!auth) return unauthorized();
+  const body = await req.json().catch(() => ({}));
   const { roomId, ciphertexts, textFallback, e2eeNonce } = body as {
     roomId: number;
     ciphertexts: Ciphertext[];
     textFallback?: string | null;
     e2eeNonce?: string | null;
   };
-  const hasCiphertexts = Array.isArray(ciphertexts) && ciphertexts.length > 0;
+  const room = parseId(String(roomId));
+  const payloads = (Array.isArray(ciphertexts) ? ciphertexts : [])
+    .filter((c) => parseUserId(c?.recipientId) && typeof c?.cipher === "string" && c.cipher)
+    .map((c) => ({ recipientId: parseUserId(c.recipientId), cipher: c.cipher, nonce: c.nonce ?? null, version: c.version ?? 1 }));
   const hasText = typeof textFallback === "string" && textFallback.trim().length > 0;
-  if (!Number(roomId) || (!hasCiphertexts && !hasText)) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-  }
+  if (!room || (!payloads.length && !hasText)) return badRequest("Invalid payload");
 
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    // Ensure sender is a member of the room
-    const [members] = await connection.query<RowDataPacket[]>(
-      `SELECT 1 FROM message_room_member WHERE room_id = ? AND user_id = ? LIMIT 1`,
-      [roomId, session.user.id]
-    );
-    if (members.length === 0) {
-      await connection.rollback();
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const [res] = await connection.query<ResultSetHeader>(
-      `INSERT INTO message (room_id, sender_id, text_content, e2ee_nonce) VALUES (?, ?, ?, ?)`,
-      [roomId, session.user.id, textFallback ?? null, e2eeNonce ?? null]
-    );
-    const messageId = res.insertId;
-
-    const values: Array<number | string | null> = [];
-    const placeholders: string[] = [];
-    for (const c of hasCiphertexts ? ciphertexts : []) {
-      if (!c?.recipientId || !c?.cipher) continue;
-      placeholders.push("(?, ?, ?, ?, ?)");
-      values.push(messageId, c.recipientId, c.cipher, c.nonce ?? null, c.version ?? 1);
-    }
-    if (placeholders.length) {
-      await connection.query(
-        `INSERT INTO message_encrypted_payload (message_id, recipient_id, cipher, nonce, version) VALUES ${placeholders.join(",")}`,
-        values
-      );
-    }
-
-    await connection.commit();
-    return NextResponse.json({ success: true, id: messageId });
-  } catch (e) {
-    await connection.rollback();
-    console.error(e);
-    return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
-  } finally {
-    connection.release();
-  }
+  // send_message runs as the user: the insert policies require room membership.
+  const { data, error } = await auth.supabase.rpc("send_message", {
+    p_room_id: room,
+    p_text: hasText ? textFallback : undefined,
+    p_e2ee_nonce: typeof e2eeNonce === "string" ? e2eeNonce : undefined,
+    p_ciphertexts: payloads,
+  });
+  if (error?.code === "42501") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (error) return serverError(error, "Failed to send message");
+  return NextResponse.json({ success: true, id: data });
 }
 
-
-
-type MessageRow = RowDataPacket & { id: number; sender_id: number; sender_name: string | null; text_content: string | null; created_at: Date };
+type MessageRow = { id: number; sender_id: string; text_content: string | null; created_at: string; sender: { name: string | null } | null };
 
 // GET /api/messages?roomId=1 -> the latest 50 messages of a room the user belongs to
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const roomId = Number(new URL(req.url).searchParams.get("roomId"));
-  if (!roomId) return NextResponse.json({ error: "Invalid roomId" }, { status: 400 });
-  try {
-    const [members] = await pool.query<RowDataPacket[]>(
-      `SELECT 1 FROM message_room_member WHERE room_id = ? AND user_id = ? LIMIT 1`,
-      [roomId, session.user.id]
-    );
-    if (members.length === 0) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    const [rows] = await pool.query<MessageRow[]>(
-      `SELECT * FROM (
-         SELECT m.id, m.sender_id, u.name AS sender_name, m.text_content, m.created_at
-         FROM message m JOIN user u ON u.id = m.sender_id
-         WHERE m.room_id = ? ORDER BY m.id DESC LIMIT 50
-       ) latest ORDER BY id ASC`,
-      [roomId]
-    );
-    return NextResponse.json({
-      items: rows.map((r) => ({
-        id: String(r.id),
-        message: r.text_content ?? "",
-        ts: new Date(r.created_at).getTime(),
-        user: { id: String(r.sender_id), name: r.sender_name },
-      })),
-    });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Failed to load messages" }, { status: 500 });
-  }
+  const auth = await getAuth();
+  if (!auth) return unauthorized();
+  const roomId = parseId(new URL(req.url).searchParams.get("roomId"));
+  if (!roomId) return badRequest("Invalid roomId");
+
+  const { data: room, error: roomError } = await auth.supabase.from("message_rooms").select("id").eq("id", roomId).maybeSingle();
+  if (roomError) return serverError(roomError, "Failed to load messages");
+  if (!room) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { data, error } = await auth.supabase
+    .from("messages")
+    .select("id, sender_id, text_content, created_at, sender:profiles!messages_sender_id_fkey(name)")
+    .eq("room_id", roomId)
+    .order("id", { ascending: false })
+    .limit(50);
+  if (error) return serverError(error, "Failed to load messages");
+  const rows: MessageRow[] = (data ?? []).reverse();
+  return NextResponse.json({
+    items: rows.map((r) => ({
+      id: String(r.id),
+      message: r.text_content ?? "",
+      ts: new Date(r.created_at).getTime(),
+      user: { id: r.sender_id, name: r.sender?.name ?? null },
+    })),
+  });
 }

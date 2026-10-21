@@ -1,18 +1,8 @@
-export type User = {
-    id: string;
-    email?: string | null;
-    name?: string | null;
-    password?: string;
-    type?: string;
-    image?: string | null;
-    email_verified_at ?: Date | null;
-}
-
 export type Visibility = 'public' | 'friends' | 'private';
 
 export interface Journal {
   id: number;
-  user_id : number;
+  user_id: string;
   title: string;
   description: string | null;
   visibility: Visibility;
@@ -24,6 +14,10 @@ export const PIECE_KINDS = [
   'story', 'poetry', 'riddle', 'novel', 'phrase', 'thought', 'article', 'blog', 'diary',
 ] as const;
 export type PieceKind = typeof PIECE_KINDS[number];
+
+export function isPieceKind(value: unknown): value is PieceKind {
+  return (PIECE_KINDS as readonly unknown[]).includes(value);
+}
 
 export const PIECE_KIND_LABELS: Record<PieceKind, string> = {
   story: 'Story',
@@ -56,7 +50,7 @@ export interface Entry {
 
 /** An entry joined with its author, as shown in feeds and on the read page. */
 export interface EntryWithAuthor extends Entry {
-  author_id: number;
+  author_id: string;
   author_name: string | null;
   author_image: string | null;
   journal_title: string;

@@ -55,7 +55,7 @@ achievements, XP and leaderboards.
 - Profile with level, personal bests and recent results.
 
 ### Social
-- Direct messages (realtime over Socket.IO, persisted in MySQL).
+- Direct messages (realtime over Socket.IO, persisted in Supabase).
 - Friend requests and “people you may know” suggestions.
 
 ---
@@ -63,8 +63,8 @@ achievements, XP and leaderboards.
 ## Tech stack
 
 - [Next.js 15](https://nextjs.org) (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix)
-- [NextAuth](https://next-auth.js.org) — email & password, plus GitHub / Google when configured (JWT sessions)
-- MySQL 8 via `mysql2`
+- [Supabase](https://supabase.com) — Postgres with row level security on every table, and Supabase Auth
+  (email & password plus OAuth such as Google / GitHub) via `@supabase/ssr` cookie sessions
 - Socket.IO realtime server (`server/ws-server.cjs`) for races, ghost carets and chat
 - react-markdown + remark-gfm + remark-math + rehype-katex + rehype-sanitize + rehype-highlight
 - CodeMirror 6, Recharts, zod
@@ -73,8 +73,8 @@ achievements, XP and leaderboards.
 
 ```
 .
-├── database/
-│   └── migrations/              # run in order: 001_…, 002_…
+├── supabase/
+│   └── migrations/              # Postgres schema, RLS policies and SQL functions
 ├── public/                      # static assets (logo)
 ├── server/
 │   └── ws-server.cjs            # Socket.IO realtime server (races, ghost carets, chat)
@@ -85,7 +85,7 @@ achievements, XP and leaderboards.
     │   ├── entries/[id]/        # read / edit a piece
     │   ├── typearena/           # solo modes + race lobby; [matchId]/ = multiplayer race
     │   ├── leaderboard/  achievements/  profile/  settings/  messages/
-    │   ├── auth/                # sign in / sign up
+    │   ├── auth/                # sign in / sign up / OAuth callback
     │   └── api/                 # route handlers (see below)
     ├── components/
     │   ├── ui/                  # shadcn/ui primitives
@@ -97,20 +97,18 @@ achievements, XP and leaderboards.
     ├── hooks/                   # use-socket, use-typearena, use-mobile
     ├── lib/
     │   ├── game/                # modes, word list, stats, achievements & XP, progress evaluation
-    │   ├── auth/                # NextAuth configuration
-    │   ├── api.ts               # auth + visibility helpers for route handlers
+    │   ├── supabase/            # browser, server, middleware and service-role (admin) clients
+    │   ├── api.ts               # auth + response helpers for route handlers
     │   ├── entries.ts           # piece validation & queries
-    │   ├── pieces.ts            # markdown → typeable plain text
-    │   ├── db.ts                # MySQL pool
-    │   └── mysql-adapter.ts     # NextAuth adapter
-    └── middleware.ts            # redirects signed-out visitors to /auth/signin
+    │   └── pieces.ts            # markdown → typeable plain text
+    └── middleware.ts            # refreshes the Supabase session, redirects signed-out visitors
 ```
 
 ## Getting started
 
 ### Prerequisites
-- Node.js 20+
-- MySQL 8.0+
+- Node.js 22
+- A Supabase project
 
 ### 1. Install
 
@@ -124,17 +122,28 @@ npm install
 cp .env.example .env.local
 ```
 
-Fill in the MySQL credentials and a `NEXTAUTH_SECRET` (`openssl rand -base64 32`). GitHub / Google sign-in buttons
-only appear when their client id and secret are set; email & password sign-up always works.
+Fill in the Supabase URL, publishable key and secret key (Project Settings → API Keys) and a
+`REALTIME_JWT_SECRET` (`openssl rand -base64 32`).
 
-### 3. Create the database
+### 3. Set up Supabase
 
-```bash
-mysql -u root -p < database/migrations/001_initial_schema.sql
-mysql -u root -p < database/migrations/002_writing_and_typing_game.sql
-```
+1. Apply `supabase/migrations/*.sql` (Supabase CLI `supabase db push`, the SQL editor, or the Supabase MCP server
+   configured in `.mcp.json`).
+2. **Authentication → URL Configuration:** set the Site URL and add `http://localhost:3000/auth/callback` (and your
+   production `https://<domain>/auth/callback`) to the redirect URLs.
+3. **Authentication → Sign In / Providers:** enable Email and each OAuth provider listed in
+   `NEXT_PUBLIC_SUPABASE_OAUTH_PROVIDERS`. Each provider's own console needs Supabase's callback URL
+   `https://<project-ref>.supabase.co/auth/v1/callback`.
 
-The migrations create the `routype_db` schema. Existing databases that already have `001` applied only need `002`.
+A `profiles` row is created for every new auth user by the `on_auth_user_created` trigger.
+
+### Security model
+
+The browser and the route handlers query Postgres **as the signed-in user**, so row level security is the access
+boundary: visibility (public / friends / private, private profiles, drafts) is enforced by the `entries`,
+`journals` and messaging policies, not by application code. Users can only update `name`, `image`, `bio` and
+`is_private` on their profile. XP and achievements are granted by the server with the secret key through
+`achievement_progress()` / `grant_progress()`, which only the service role can execute.
 
 ### 4. Run
 
@@ -146,8 +155,8 @@ npm run dev
 npm run ws
 ```
 
-The realtime server reads the same `.env` variables (`NEXTAUTH_SECRET` or `REALTIME_JWT_SECRET`, `MYSQL_*`,
-`WS_PORT`, `WS_CORS_ORIGIN`) — export them in that terminal, e.g. `set -a; source .env.local; set +a; npm run ws`.
+The realtime server reads the same `.env` variables (`REALTIME_JWT_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`,
+`SUPABASE_SECRET_KEY`, `WS_PORT`, `WS_CORS_ORIGIN`) — export them in that terminal, e.g. `set -a; source .env.local; set +a; npm run ws`.
 
 ### Scripts
 
@@ -161,11 +170,11 @@ The realtime server reads the same `.env` variables (`NEXTAUTH_SECRET` or `REALT
 
 ## API overview
 
-All routes require a signed-in session and return `401` otherwise.
+All routes require a signed-in session and return `401` otherwise. Sign-up, sign-in and sign-out go straight to
+Supabase Auth from the browser; `/auth/callback` completes OAuth and email-confirmation links.
 
 | Route | Methods | Purpose |
 | --- | --- | --- |
-| `/api/auth/signup` | POST | create an email & password account |
 | `/api/journals`, `/api/journals/:id` | GET POST · GET PATCH DELETE | your journals and their pieces |
 | `/api/entries` | GET POST | public feed (`?kind=`, `?before=`) · create a piece |
 | `/api/entries/:id` | GET PATCH DELETE | read (visibility-checked) · edit · delete a piece |
@@ -197,7 +206,8 @@ Matches live in memory; results are persisted by each client through `/api/typin
   The realtime server's start command is now `node server/ws-server.cjs` (or `npm run ws`).
 - Set `NEXT_PUBLIC_WS_URL` on the web app to the public URL of the realtime server, and `WS_CORS_ORIGIN` on the
   realtime server to the web app's origin.
-- Run `database/migrations/002_writing_and_typing_game.sql` against the production database.
+- Set the Supabase variables on the web app, and `NEXT_PUBLIC_SUPABASE_URL` (or `SUPABASE_URL`),
+  `SUPABASE_SECRET_KEY` and `REALTIME_JWT_SECRET` on the realtime server.
 
 ## Roadmap
 

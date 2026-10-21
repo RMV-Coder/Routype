@@ -12,7 +12,7 @@ import { PeopleYouMayKnow } from "@/components/social/people-you-may-know";
 import { ordinal } from "@/components/typing/typing-results";
 
 type Profile = {
-  id: number; name: string | null; email: string; image: string | null; bio: string | null; is_private: boolean; xp: number;
+  id: string; name: string | null; email: string | null; image: string | null; bio: string | null; is_private: boolean; xp: number;
   creation_time: string; level: { level: number; current: number; next: number };
 };
 type Stats = { tests: number; best_wpm: number | null; avg_wpm_last10: number | null; pieces: number; achievements: number };

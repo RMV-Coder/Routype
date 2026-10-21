@@ -1,35 +1,23 @@
 import { NextResponse, NextRequest } from "next/server";
 import { z } from "zod";
-import type { RowDataPacket } from "mysql2";
-import { pool } from "@/lib/db";
-import { badRequest, getUserId, notFound, serverError, unauthorized } from "@/lib/api";
+import { badRequest, getAuth, notFound, serverError, unauthorized } from "@/lib/api";
 import { levelForXp } from "@/lib/game/achievements";
-
-type ProfileRow = RowDataPacket & {
-  id: number; name: string | null; email: string; image: string | null; bio: string | null;
-  is_private: number; xp: number; creation_time: string;
-};
 
 // GET /api/profile -> the signed-in user's profile, level and headline stats
 export async function GET() {
-  const userId = await getUserId();
-  if (!userId) return unauthorized();
+  const auth = await getAuth();
+  if (!auth) return unauthorized();
   try {
-    const [rows] = await pool.query<ProfileRow[]>(
-      `SELECT id, name, email, image, bio, is_private, xp, creation_time FROM user WHERE id = ?`, [userId]);
-    const user = rows[0];
-    if (!user) return notFound("User not found");
-    const [[stats]] = await pool.query<RowDataPacket[]>(
-      `SELECT
-         (SELECT COUNT(*) FROM typing_score WHERE user_id = ? AND mode <> 'zen') AS tests,
-         (SELECT MAX(wpm) FROM typing_score WHERE user_id = ?) AS best_wpm,
-         (SELECT ROUND(AVG(wpm), 1) FROM (SELECT wpm FROM typing_score WHERE user_id = ? ORDER BY created_at DESC LIMIT 10) r) AS avg_wpm_last10,
-         (SELECT COUNT(*) FROM entry e JOIN journal j ON j.id = e.journal_id WHERE j.user_id = ? AND e.status = 'published') AS pieces,
-         (SELECT COUNT(*) FROM user_achievement WHERE user_id = ?) AS achievements`,
-      [userId, userId, userId, userId, userId],
-    );
+    const [{ data: profile, error }, { data: stats, error: statsError }, { data: { user } }] = await Promise.all([
+      auth.supabase.from("profiles").select("id, name, image, bio, is_private, xp, created_at").eq("id", auth.userId).maybeSingle(),
+      auth.supabase.rpc("my_profile_stats").single(),
+      auth.supabase.auth.getUser(),
+    ]);
+    if (error) throw error;
+    if (statsError) throw statsError;
+    if (!profile) return notFound("User not found");
     return NextResponse.json({
-      profile: { ...user, is_private: !!user.is_private, level: levelForXp(user.xp) },
+      profile: { ...profile, email: user?.email ?? null, creation_time: profile.created_at, level: levelForXp(profile.xp) },
       stats,
     });
   } catch (error) {
@@ -45,21 +33,17 @@ const patchSchema = z.object({
 
 // PATCH /api/profile { name?, bio?, isPrivate? }
 export async function PATCH(req: NextRequest) {
-  const userId = await getUserId();
-  if (!userId) return unauthorized();
+  const auth = await getAuth();
+  if (!auth) return unauthorized();
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return badRequest(parsed.error.issues[0]?.message ?? "Invalid profile");
   const { name, bio, isPrivate } = parsed.data;
-  const sets: string[] = [];
-  const params: (string | number | null)[] = [];
-  if (name !== undefined) { sets.push("name = ?"); params.push(name); }
-  if (bio !== undefined) { sets.push("bio = ?"); params.push(bio || null); }
-  if (isPrivate !== undefined) { sets.push("is_private = ?"); params.push(isPrivate ? 1 : 0); }
-  if (!sets.length) return badRequest("Nothing to update");
-  try {
-    await pool.query(`UPDATE user SET ${sets.join(", ")} WHERE id = ?`, [...params, userId]);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return serverError(error, "Failed to update profile");
-  }
+  const changes: { name?: string; bio?: string | null; is_private?: boolean } = {};
+  if (name !== undefined) changes.name = name;
+  if (bio !== undefined) changes.bio = bio || null;
+  if (isPrivate !== undefined) changes.is_private = isPrivate;
+  if (!Object.keys(changes).length) return badRequest("Nothing to update");
+  const { error } = await auth.supabase.from("profiles").update(changes).eq("id", auth.userId);
+  if (error) return serverError(error, "Failed to update profile");
+  return NextResponse.json({ success: true });
 }

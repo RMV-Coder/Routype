@@ -8,7 +8,7 @@ import { RANKED_MODES } from "@/lib/game/modes";
 import { levelForXp } from "@/lib/game/achievements";
 import { cn } from "@/lib/utils";
 
-type Row = { rank: number; user_id: number; name: string | null; image: string | null; xp: number; wpm: number; accuracy: number; created_at: string; isMe: boolean };
+type Row = { rank: number; user_id: string; name: string | null; image: string | null; xp: number; wpm: number; accuracy: number; created_at: string; isMe: boolean };
 const PERIODS = [["daily", "Today"], ["weekly", "This week"], ["monthly", "This month"], ["all", "All time"]] as const;
 
 export default function LeaderboardPage() {
@@ -64,7 +64,7 @@ export default function LeaderboardPage() {
                         {r.image && <AvatarImage src={r.image} alt="" />}
                         <AvatarFallback>{(r.name ?? "?").slice(0, 1).toUpperCase()}</AvatarFallback>
                       </Avatar>
-                      <span>{r.name ?? `Writer #${r.user_id}`}{r.isMe && " (you)"}</span>
+                      <span>{r.name ?? "Anonymous writer"}{r.isMe && " (you)"}</span>
                       <span className="text-xs text-muted-foreground">lv {levelForXp(r.xp).level}</span>
                     </div>
                   </td>

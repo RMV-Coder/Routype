@@ -4,7 +4,7 @@ export interface TypingPiece {
   id: number;
   title: string | null;
   kind: string;
-  authorId: number;
+  authorId: string;
   authorName: string | null;
   text: string;
 }

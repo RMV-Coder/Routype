@@ -2,19 +2,20 @@
 // Routype realtime server: chat rooms, presence and TypeArena multiplayer races.
 //
 // Clients authenticate with a short-lived HS256 token from GET /api/realtime/token,
-// signed with REALTIME_JWT_SECRET (falls back to NEXTAUTH_SECRET).
+// signed with REALTIME_JWT_SECRET. Chat room membership is checked in Supabase with
+// the service role (SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SECRET_KEY).
 //
 // Run with: npm run ws
 
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
-const mysql = require('mysql2/promise');
+const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
 
 const PORT = process.env.PORT || process.env.WS_PORT || 4001;
 const CORS_ORIGIN = process.env.WS_CORS_ORIGIN || '*';
-const SECRET = process.env.REALTIME_JWT_SECRET || process.env.NEXTAUTH_SECRET;
+const SECRET = process.env.REALTIME_JWT_SECRET;
 
 const MAX_PLAYERS = 8;
 const COUNTDOWN_MS = 3000;
@@ -23,30 +24,25 @@ const FINISHED_MATCH_TTL_MS = 10 * 60 * 1000;
 const DISCONNECT_GRACE_MS = 10 * 1000;
 const GHOST_COLORS = ['#e11d48', '#2563eb', '#16a34a', '#d97706', '#9333ea', '#0891b2', '#db2777', '#65a30d'];
 
-function createDbPool() {
-    if (!process.env.MYSQL_HOST) return null;
-    return mysql.createPool({
-        host: process.env.MYSQL_HOST,
-        port: parseInt(process.env.MYSQL_PORT || '3306'),
-        user: process.env.MYSQL_USER,
-        password: process.env.MYSQL_PASSWORD,
-        database: process.env.MYSQL_DATABASE,
-        waitForConnections: true,
-        connectionLimit: 5,
-        queueLimit: 0,
-        charset: 'utf8mb4',
-    });
+function createDb() {
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SECRET_KEY;
+    if (!url || !key) {
+        console.warn('SUPABASE_URL and SUPABASE_SECRET_KEY are not set: chat rooms are disabled');
+        return null;
+    }
+    return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 const ack = (cb, payload) => { if (typeof cb === 'function') cb(payload); };
 
 function main() {
     if (!SECRET) {
-        console.error('REALTIME_JWT_SECRET or NEXTAUTH_SECRET must be set');
+        console.error('REALTIME_JWT_SECRET must be set');
         process.exit(1);
     }
     const app = express();
-    const pool = createDbPool();
+    const db = createDb();
     const httpServer = http.createServer(app);
     const io = new Server(httpServer, {
         cors: { origin: CORS_ORIGIN, methods: ['GET', 'POST'], credentials: true },
@@ -71,12 +67,15 @@ function main() {
 
     // -------------------------------------------------------------- chat
     async function isRoomMember(roomId, userId) {
-        if (!pool) return false;
-        const [rows] = await pool.execute(
-            'SELECT 1 FROM message_room_member WHERE room_id = ? AND user_id = ? LIMIT 1',
-            [roomId, userId]
-        );
-        return rows.length > 0;
+        if (!db) return false;
+        const { data, error } = await db
+            .from('message_room_members')
+            .select('room_id')
+            .eq('room_id', roomId)
+            .eq('user_id', userId)
+            .limit(1);
+        if (error) throw error;
+        return data.length > 0;
     }
 
     // ------------------------------------------------------- TypeArena
@@ -117,7 +116,7 @@ function main() {
     function addParticipant(m, user) {
         if (!m.participants[user.id]) {
             m.participants[user.id] = {
-                id: user.id, name: user.name || `Writer ${user.id}`, color: nextColor(m),
+                id: user.id, name: user.name || 'Writer', color: nextColor(m),
                 ready: false, connected: true, progress: 0, wpm: 0, accuracy: 100, finishedAt: null, placement: null,
             };
         }
