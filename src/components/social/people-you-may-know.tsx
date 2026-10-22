@@ -5,12 +5,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-type Suggestion = { id: number; name: string | null; image: string | null; score: number; mutualFriends: number; coReads: number };
+type Suggestion = { id: string; name: string | null; image: string | null; score: number; mutualFriends: number; coReads: number };
 
 export function PeopleYouMayKnow() {
   const [items, setItems] = useState<Suggestion[]>([]);
   const [pending, startTransition] = useTransition();
-  const [requested, setRequested] = useState<Set<number>>(new Set());
+  const [requested, setRequested] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
@@ -22,7 +22,7 @@ export function PeopleYouMayKnow() {
     })();
   }, []);
 
-  const sendRequest = async (userId: number) => {
+  const sendRequest = async (userId: string) => {
     startTransition(async () => {
       await fetch("/api/friends", {
         method: "POST",

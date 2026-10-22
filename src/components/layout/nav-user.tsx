@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { ChevronsUpDown, LogOut, Settings, SquareUser, Trophy } from "lucide-react"
-import { signOut } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import {
   Avatar,
   AvatarFallback,
@@ -23,11 +23,17 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { User } from "@/lib/definitions"
+import type { CurrentUser } from "@/app/providers"
+
+async function signOut() {
+  await createClient().auth.signOut()
+  window.location.href = "/auth/signin"
+}
+
 export function NavUser({
   user,
 }: {
-  user: User
+  user: CurrentUser
 }) {
   const { isMobile } = useSidebar()
   return (
@@ -81,7 +87,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/auth/signin" })}>
+            <DropdownMenuItem onClick={signOut}>
               <LogOut />
               Log out
             </DropdownMenuItem>

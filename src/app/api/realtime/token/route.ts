@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
 import crypto from "crypto";
+import { getAuth } from "@/lib/api";
 
 function base64url(input: Buffer | string): string {
     const b = Buffer.isBuffer(input) ? input : Buffer.from(input);
@@ -18,25 +17,21 @@ function signJwtHS256(payload: Record<string, unknown>, secret: string, expiresI
     return `${data}.${base64url(signature)}`;
 }
 
+// GET /api/realtime/token -> short-lived token for the realtime server (server/ws-server.cjs)
 export async function GET(): Promise<Response> {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user?.id) {
-        return new Response("Unauthorized", { status: 401 });
-    }
+    const auth = await getAuth();
+    if (!auth) return new Response("Unauthorized", { status: 401 });
 
-    const secret = process.env.REALTIME_JWT_SECRET || process.env.NEXTAUTH_SECRET;
-    if (!secret) {
-        return new Response("Server misconfigured", { status: 500 });
-    }
+    const secret = process.env.REALTIME_JWT_SECRET;
+    if (!secret) return new Response("Server misconfigured", { status: 500 });
 
+    const { data: profile } = await auth.supabase.from("profiles").select("name, type").eq("id", auth.userId).maybeSingle();
     const payload: { sub: string; name: string | null; type: string | null } = {
-        sub: String(session.user.id),
-        name: session.user.name || null,
-        type: (session.user as unknown as { type?: string })?.type ?? null,
+        sub: auth.userId,
+        name: profile?.name ?? null,
+        type: profile?.type ?? null,
     };
 
     const token = signJwtHS256(payload, secret, 5 * 60);
     return Response.json({ token });
 }
-
-

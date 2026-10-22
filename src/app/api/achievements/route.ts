@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
-import type { RowDataPacket } from "mysql2";
-import { pool } from "@/lib/db";
-import { getUserId, serverError, unauthorized } from "@/lib/api";
+import { getAuth, serverError, unauthorized } from "@/lib/api";
 import { ACHIEVEMENTS } from "@/lib/game/achievements";
 
 // GET /api/achievements -> every achievement with the signed-in user's unlock status
 export async function GET() {
-  const userId = await getUserId();
-  if (!userId) return unauthorized();
-  try {
-    const [rows] = await pool.query<(RowDataPacket & { achievement_code: string; unlocked_at: string })[]>(
-      `SELECT achievement_code, unlocked_at FROM user_achievement WHERE user_id = ?`, [userId]);
-    const unlocked = new Map(rows.map((r) => [r.achievement_code, r.unlocked_at]));
-    return NextResponse.json({
-      items: ACHIEVEMENTS.map(({ code, name, description, category, xp }) => ({
-        code, name, description, category, xp, unlockedAt: unlocked.get(code) ?? null,
-      })),
-    });
-  } catch (error) {
-    return serverError(error, "Failed to load achievements");
-  }
+  const auth = await getAuth();
+  if (!auth) return unauthorized();
+  const { data, error } = await auth.supabase
+    .from("user_achievements")
+    .select("achievement_code, unlocked_at")
+    .eq("user_id", auth.userId);
+  if (error) return serverError(error, "Failed to load achievements");
+  const unlocked = new Map((data ?? []).map((r) => [r.achievement_code as string, r.unlocked_at as string]));
+  return NextResponse.json({
+    items: ACHIEVEMENTS.map(({ code, name, description, category, xp }) => ({
+      code, name, description, category, xp, unlockedAt: unlocked.get(code) ?? null,
+    })),
+  });
 }

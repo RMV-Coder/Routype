@@ -1,17 +1,20 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { getProviders, signIn, type ClientSafeProvider } from "next-auth/react";
+import type { Provider } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { createClient } from "@/lib/supabase/client";
+import { OAUTH_LABELS, OAUTH_PROVIDERS, safeRedirectPath } from "@/lib/auth-providers";
 
 const ERRORS: Record<string, string> = {
-  CredentialsSignin: "Wrong email or password.",
-  OAuthAccountNotLinked: "This email is already registered with another sign-in method.",
+  callback: "Sign in could not be completed. Please try again.",
+  invalid_credentials: "Wrong email or password.",
+  email_not_confirmed: "Confirm your email first — check your inbox for the link.",
 };
 
 export default function SignInPage() {
@@ -24,8 +27,7 @@ export default function SignInPage() {
 
 function SignIn() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
-  const [providers, setProviders] = useState<ClientSafeProvider[]>([]);
+  const callbackUrl = safeRedirectPath(searchParams.get("callbackUrl"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(() => {
@@ -34,21 +36,24 @@ function SignIn() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    getProviders().then((p) => setProviders(Object.values(p ?? {}).filter((x) => x.type === "oauth")));
-  }, []);
+  const onOAuth = async (provider: Provider) => {
+    setError(null);
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(callbackUrl)}`;
+    const { error } = await createClient().auth.signInWithOAuth({ provider, options: { redirectTo } });
+    if (error) setError(error.message);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const res = await signIn("credentials", { email, password, redirect: false, callbackUrl });
-    if (res?.error) {
-      setError(ERRORS[res.error] ?? "Sign in failed. Please try again.");
+    const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      setError(ERRORS[error.code ?? ""] ?? "Sign in failed. Please try again.");
       setSubmitting(false);
       return;
     }
-    window.location.href = res?.url || callbackUrl;
+    window.location.href = callbackUrl;
   };
 
   return (
@@ -56,11 +61,11 @@ function SignIn() {
       subtitle="Welcome back, writer."
       footer={<span>Don&apos;t have an account? <Link className="underline" href="/auth/signup">Sign up</Link></span>}
     >
-      {providers.length > 0 && (
+      {OAUTH_PROVIDERS.length > 0 && (
         <>
           <div className="grid gap-2">
-            {providers.map((p) => (
-              <Button key={p.id} variant="outline" onClick={() => signIn(p.id, { callbackUrl })}>Continue with {p.name}</Button>
+            {OAUTH_PROVIDERS.map((p) => (
+              <Button key={p} variant="outline" onClick={() => onOAuth(p)}>Continue with {OAUTH_LABELS[p]}</Button>
             ))}
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground"><Separator className="flex-1" /> or <Separator className="flex-1" /></div>

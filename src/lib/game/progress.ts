@@ -1,5 +1,6 @@
 // Server-side only: imported from API routes.
-import type { PoolConnection, RowDataPacket } from "mysql2/promise";
+import "server-only";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ACHIEVEMENTS, type ProgressSnapshot } from "./achievements";
 
 export interface UnlockedAchievement {
@@ -9,56 +10,47 @@ export interface UnlockedAchievement {
   xp: number;
 }
 
-type CountRow = RowDataPacket & { n: number };
-
-async function count(conn: PoolConnection, sql: string, params: unknown[]): Promise<number> {
-  const [rows] = await conn.query<CountRow[]>(sql, params);
-  return Number(rows[0]?.n ?? 0);
-}
-
-/** Gathers the counters used by achievement rules for one user. */
-export async function loadProgress(conn: PoolConnection, userId: number): Promise<Omit<ProgressSnapshot, "last">> {
-  const [testsCompleted, racesCompleted, racesWon, piecesTyped, piecesPublished, poemsPublished, piecesShared, timesTypedByOthers] =
-    await Promise.all([
-      count(conn, `SELECT COUNT(*) n FROM typing_score WHERE user_id = ? AND mode <> 'zen'`, [userId]),
-      count(conn, `SELECT COUNT(*) n FROM typing_score WHERE user_id = ? AND match_id IS NOT NULL`, [userId]),
-      count(conn, `SELECT COUNT(*) n FROM typing_score WHERE user_id = ? AND match_id IS NOT NULL AND placement = 1`, [userId]),
-      count(conn,
-        `SELECT COUNT(*) n FROM typing_score s JOIN entry e ON e.id = s.entry_id JOIN journal j ON j.id = e.journal_id
-         WHERE s.user_id = ? AND j.user_id <> ?`, [userId, userId]),
-      count(conn, `SELECT COUNT(*) n FROM entry e JOIN journal j ON j.id = e.journal_id WHERE j.user_id = ? AND e.status = 'published'`, [userId]),
-      count(conn, `SELECT COUNT(*) n FROM entry e JOIN journal j ON j.id = e.journal_id WHERE j.user_id = ? AND e.status = 'published' AND e.kind = 'poetry'`, [userId]),
-      count(conn, `SELECT COUNT(*) n FROM entry e JOIN journal j ON j.id = e.journal_id WHERE j.user_id = ? AND e.status = 'published' AND e.allow_typing = 1`, [userId]),
-      count(conn,
-        `SELECT COUNT(*) n FROM typing_score s JOIN entry e ON e.id = s.entry_id JOIN journal j ON j.id = e.journal_id
-         WHERE j.user_id = ? AND s.user_id <> ?`, [userId, userId]),
-    ]);
-  return { testsCompleted, racesCompleted, racesWon, piecesTyped, piecesPublished, poemsPublished, piecesShared, timesTypedByOthers };
-}
-
 /**
  * Evaluates every achievement for `userId`, stores new unlocks, grants their XP
  * (plus `extraXp`) and returns what was newly unlocked.
+ *
+ * Runs with the service role: users cannot grant themselves XP or achievements
+ * (see achievement_progress / grant_progress in the schema).
  */
 export async function evaluateAchievements(
-  conn: PoolConnection,
-  userId: number,
+  userId: string,
   last?: ProgressSnapshot["last"],
   extraXp = 0,
 ): Promise<UnlockedAchievement[]> {
-  const progress: ProgressSnapshot = { ...(await loadProgress(conn, userId)), last };
-  const [rows] = await conn.query<(RowDataPacket & { achievement_code: string })[]>(
-    `SELECT achievement_code FROM user_achievement WHERE user_id = ?`, [userId]);
-  const owned = new Set(rows.map((r) => r.achievement_code));
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("achievement_progress", { p_user_id: userId }).single();
+  if (error) throw error;
 
-  const unlocked = ACHIEVEMENTS.filter((a) => !owned.has(a.code) && a.unlocked(progress));
-  if (unlocked.length) {
-    await conn.query(
-      `INSERT IGNORE INTO user_achievement (user_id, achievement_code) VALUES ${unlocked.map(() => "(?, ?)").join(", ")}`,
-      unlocked.flatMap((a) => [userId, a.code]),
-    );
-  }
-  const xp = extraXp + unlocked.reduce((sum, a) => sum + a.xp, 0);
-  if (xp > 0) await conn.query(`UPDATE user SET xp = xp + ? WHERE id = ?`, [xp, userId]);
-  return unlocked.map(({ code, name, description, xp }) => ({ code, name, description, xp }));
+  const progress: ProgressSnapshot = {
+    testsCompleted: Number(data.tests_completed),
+    racesCompleted: Number(data.races_completed),
+    racesWon: Number(data.races_won),
+    piecesTyped: Number(data.pieces_typed),
+    piecesPublished: Number(data.pieces_published),
+    poemsPublished: Number(data.poems_published),
+    piecesShared: Number(data.pieces_shared),
+    timesTypedByOthers: Number(data.times_typed_by_others),
+    last,
+  };
+  const owned = new Set(data.owned ?? []);
+  const candidates = ACHIEVEMENTS.filter((a) => !owned.has(a.code) && a.unlocked(progress));
+  if (!candidates.length && extraXp <= 0) return [];
+
+  const { data: granted, error: grantError } = await admin.rpc("grant_progress", {
+    p_user_id: userId,
+    p_codes: candidates.map((a) => a.code),
+    p_code_xp: candidates.map((a) => a.xp),
+    p_extra_xp: extraXp,
+  });
+  if (grantError) throw grantError;
+
+  const newCodes = new Set(granted ?? []);
+  return candidates
+    .filter((a) => newCodes.has(a.code))
+    .map(({ code, name, description, xp }) => ({ code, name, description, xp }));
 }
