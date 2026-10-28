@@ -399,6 +399,78 @@ export type Database = {
           },
         ]
       }
+      music_scores: {
+        Row: {
+          accuracy: number
+          created_at: string
+          duration_seconds: number
+          good: number
+          great: number
+          holds_kept: number
+          id: number
+          max_combo: number
+          miss: number
+          part_id: string
+          perfect: number
+          score: number
+          song_id: string
+          speed: number
+          stray: number
+          user_id: string
+        }
+        Insert: {
+          accuracy: number
+          created_at?: string
+          duration_seconds: number
+          good: number
+          great: number
+          holds_kept?: number
+          id?: never
+          max_combo: number
+          miss: number
+          part_id: string
+          perfect: number
+          score: number
+          song_id: string
+          speed: number
+          stray: number
+          user_id: string
+        }
+        Update: {
+          accuracy?: number
+          created_at?: string
+          duration_seconds?: number
+          good?: number
+          great?: number
+          holds_kept?: number
+          id?: never
+          max_combo?: number
+          miss?: number
+          part_id?: string
+          perfect?: number
+          score?: number
+          song_id?: string
+          speed?: number
+          stray?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "music_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "entries_with_author"
+            referencedColumns: ["author_id"]
+          },
+          {
+            foreignKeyName: "music_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           bio: string | null
@@ -675,6 +747,35 @@ export type Database = {
           user_id: string
           wpm: number
           xp: number
+        }[]
+      }
+      music_leaderboard: {
+        Args: {
+          p_part_id: string
+          p_period?: string
+          p_song_id: string
+          p_speed: number
+        }
+        Returns: {
+          accuracy: number
+          created_at: string
+          image: string
+          max_combo: number
+          name: string
+          score: number
+          user_id: string
+          xp: number
+        }[]
+      }
+      my_music_bests: {
+        Args: never
+        Returns: {
+          accuracy: number
+          part_id: string
+          plays: number
+          score: number
+          song_id: string
+          speed: number
         }[]
       }
       my_profile_stats: {
