@@ -3,7 +3,7 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { BookOpen, Keyboard, MessageSquare, Settings, SquareUser, Trophy, Medal, Waves } from "lucide-react"
+import { BookOpen, Keyboard, MessageSquare, Piano, Settings, SquareUser, Trophy, Medal, Waves } from "lucide-react"
 import { NavMain } from "@/components/layout/nav-main"
 import { NavSecondary } from "@/components/layout/nav-secondary"
 import { NavUser } from "@/components/layout/nav-user"
@@ -24,6 +24,7 @@ const write = [
 ]
 const play = [
   { title: "TypeArena", url: "/typearena", icon: Keyboard },
+  { title: "Concert Hall", url: "/concert-hall", icon: Piano },
   { title: "Leaderboards", url: "/leaderboard", icon: Medal },
   { title: "Achievements", url: "/achievements", icon: Trophy },
 ]

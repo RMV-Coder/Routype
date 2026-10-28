@@ -14,6 +14,7 @@ const SECTION_TITLES: Record<string, string> = {
   "my-journals": "My Journals",
   entries: "Piece",
   typearena: "TypeArena",
+  "concert-hall": "Concert Hall",
   leaderboard: "Leaderboards",
   achievements: "Achievements",
   profile: "Profile",

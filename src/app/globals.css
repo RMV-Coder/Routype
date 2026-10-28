@@ -135,3 +135,53 @@
 .markdown-body.piece .katex {
   font-size: 1.05em;
 }
+
+/* Concert Hall stage. The canvas views read these, so they are plain colours, not oklch. */
+.concert-hall {
+  --ch-stage: #fbfcfd;
+  --ch-lane: #f1f4f8;
+  --ch-lane-sharp: #e2e7ef;
+  --ch-keycap: #ffffff;
+  --ch-ink: #0f172a;
+  --ch-muted: #5b6b82;
+  --ch-line: #d9dfe8;
+  --ch-accent: #9a6a12;
+  --ch-accent-ink: #ffffff;
+  --ch-perfect: #0e7490;
+  --ch-great: #15803d;
+  --ch-good: #c2410c;
+  --ch-miss: #dc2626;
+  --ch-p1: #9a6a12;
+  --ch-p2: #0e7490;
+  --ch-p3: #be185d;
+  --ch-p4: #4338ca;
+}
+.dark .concert-hall {
+  --ch-stage: #0e1628;
+  --ch-lane: #131d33;
+  --ch-lane-sharp: #0a1222;
+  --ch-keycap: #1a2540;
+  --ch-ink: #e8edf5;
+  --ch-muted: #93a3b8;
+  --ch-line: #23304a;
+  --ch-accent: #f0b54a;
+  --ch-accent-ink: #1b1204;
+  --ch-perfect: #2dd4bf;
+  --ch-great: #4ade80;
+  --ch-good: #fb923c;
+  --ch-miss: #f87171;
+  --ch-p1: #f0b54a;
+  --ch-p2: #2dd4bf;
+  --ch-p3: #f472b6;
+  --ch-p4: #8b9cff;
+}
+.concert-hall .ch-pop {
+  animation: ch-pop 0.35s ease-out;
+}
+@keyframes ch-pop {
+  from { scale: 1.25; }
+  to { scale: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .concert-hall .ch-pop { animation: none; }
+}
